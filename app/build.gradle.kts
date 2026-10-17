@@ -38,5 +38,5 @@ implementation("androidx.compose.ui")
 implementation("androidx.compose.ui")
 implementation("androidx.compose.material3")
 implementation("androidx.compose.material")
-
-debugImplementation("androidx.compose.ui:ui-tooling")
+debugImplementation("androidx.compose.ui")
+}
