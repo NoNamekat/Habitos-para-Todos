@@ -1,0 +1,9 @@
+HÁBITOS PARA TODOS — projeto Android inicial
+
+Este pacote contém o código-fonte do aplicativo e um workflow de GitHub Actions para compilar um APK na nuvem.
+
+O aplicativo oferece calendário mensal, marcação diária, criação de hábitos, emoji, estatísticas básicas, modo escuro e armazenamento local via SharedPreferences.
+
+IMPORTANTE: o APK ainda não está compilado. Para gerar sem instalar Android Studio no celular, envie este projeto para um repositório GitHub e execute o workflow "Compilar APK Android" na aba Actions. O arquivo gerado fica disponível em Artifacts.
+
+Requisitos de compilação: JDK 17, Gradle/Android Gradle Plugin e acesso à internet para baixar dependências.
