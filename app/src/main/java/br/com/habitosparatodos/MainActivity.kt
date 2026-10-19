@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -53,6 +54,28 @@ fun HabitosApp() {
     var dark by remember { mutableStateOf(prefs.getBoolean("dark", false)) }
     var tab by remember { mutableIntStateOf(0) }
     var showAdd by remember { mutableStateOf(false) }
+    var showDayDetails by remember { mutableStateOf(false) }
+    var dayNote by remember { mutableStateOf("") }
+    var dayEmoji by remember { mutableStateOf("😊") }
+    var dayNotes by remember {
+        mutableStateOf(loadDayNotes(prefs.getString("day_notes", null)))
+    }
+    var dayEmojis by remember {
+        mutableStateOf(loadDayEmojis(prefs.getString("day_emojis", null)))
+    }
+    fun saveDayDetails() {
+        val key = selectedDate.toString()
+        dayNotes = if (dayNote.isBlank()) dayNotes - key else dayNotes + (key to dayNote.trim())
+        dayEmojis = dayEmojis + (key to dayEmoji)
+        prefs.edit().putString("day_notes", saveStringMap(dayNotes)).putString("day_emojis", saveStringMap(dayEmojis)).apply()
+        showDayDetails = false
+    }
+    fun openDayDetails(date: LocalDate) {
+        selectedDate = date
+        dayNote = dayNotes[date.toString()] ?: ""
+        dayEmoji = dayEmojis[date.toString()] ?: "😊"
+        showDayDetails = true
+    }
     var habitName by remember { mutableStateOf("") }
     var habitEmoji by remember { mutableStateOf("✨") }
     var habits by remember {
@@ -112,15 +135,20 @@ fun HabitosApp() {
                                         Box(Modifier.weight(1f).aspectRatio(1f).padding(2.dp), contentAlignment = Alignment.Center) {
                                             if (day in 1..total) {
                                                 val date = month.atDay(day); val chosen = date == selectedDate
-                                                Column(Modifier.fillMaxSize().background(if (chosen) Purple else Color.Transparent, CircleShape).clickable { selectedDate = date }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                                                Column(Modifier.fillMaxSize().background(if (chosen) Purple else Color.Transparent, CircleShape).clickable { openDayDetails(date) }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                                                     Text("$day", color = if (chosen) Color.White else ink, fontWeight = if (chosen || date == today) FontWeight.Bold else FontWeight.Normal)
+                                                    val emoji = dayEmojis[date.toString()]
+                                                    if (emoji != null) Text(emoji, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                                                     if (habits.any { date.toString() in it.doneDates }) Box(Modifier.padding(top = 2.dp).size(4.dp).background(if (chosen) Color.White else Mint, CircleShape))
                                                 }
                                             }
                                         }
                                     }
                                 }
-                                Text("Dia selecionado: ${selectedDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}", color = ink.copy(alpha = .6f), style = MaterialTheme.typography.bodySmall)
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text("Dia selecionado: ${selectedDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}", color = ink.copy(alpha = .6f), style = MaterialTheme.typography.bodySmall)
+                                    TextButton(onClick = { openDayDetails(selectedDate) }) { Icon(Icons.Default.EditNote, null); Spacer(Modifier.width(4.dp)); Text("Nota e emoji") }
+                                }
                             }
                         }
                     }
@@ -137,6 +165,24 @@ fun HabitosApp() {
             }
         }
     }
+    if (showDayDetails) AlertDialog(
+        onDismissRequest = { showDayDetails = false },
+        title = { Text("Seu dia • ${selectedDate.format(DateTimeFormatter.ofPattern("dd/MM"))}") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Como foi seu dia? Escolha um emoji")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("😊", "💪", "🔥", "😴", "🥰", "😔", "🎯", "🌱", "🎉", "📚").forEach { e ->
+                        Text(e, Modifier.background(if (dayEmoji == e) Purple.copy(alpha = .2f) else Color.Transparent, RoundedCornerShape(10.dp)).clickable { dayEmoji = e }.padding(6.dp))
+                    }
+                }
+                OutlinedTextField(value = dayNote, onValueChange = { dayNote = it }, label = { Text("Nota do dia") }, placeholder = { Text("O que aconteceu hoje?") }, minLines = 3, modifier = Modifier.fillMaxWidth())
+                Text("Os registros ficam salvos neste aparelho.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        },
+        confirmButton = { TextButton(onClick = { saveDayDetails() }) { Text("Salvar") } },
+        dismissButton = { TextButton(onClick = { showDayDetails = false }) { Text("Cancelar") } }
+    )
     if (showAdd) AlertDialog(onDismissRequest = { showAdd = false; habitName = "" }, title = { Text("Novo hábito") }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedTextField(value = habitName, onValueChange = { habitName = it }, label = { Text("Nome do hábito") }, singleLine = true)
@@ -172,4 +218,22 @@ private fun saveHabits(habits: List<Habit>): String {
 private fun loadHabits(raw: String?): List<Habit> {
     if (raw.isNullOrBlank()) return emptyList()
     return try { val arr = JSONArray(raw); (0 until arr.length()).map { i -> val o = arr.getJSONObject(i); val d = o.getJSONArray("dates"); Habit(o.getLong("id"), o.getString("name"), o.optString("emoji", "✨"), o.optLong("color", 0xFF7667F8), (0 until d.length()).map { d.getString(it) }.toSet()) } } catch (_: Exception) { emptyList() }
+}
+
+
+private fun saveStringMap(map: Map<String, String>): String {
+    val obj = JSONObject()
+    map.forEach { (key, value) -> obj.put(key, value) }
+    return obj.toString()
+}
+
+private fun loadDayNotes(raw: String?): Map<String, String> = loadStringMap(raw)
+private fun loadDayEmojis(raw: String?): Map<String, String> = loadStringMap(raw)
+
+private fun loadStringMap(raw: String?): Map<String, String> {
+    if (raw.isNullOrBlank()) return emptyMap()
+    return try {
+        val obj = JSONObject(raw)
+        obj.keys().asSequence().associateWith { obj.getString(it) }
+    } catch (_: Exception) { emptyMap() }
 }
