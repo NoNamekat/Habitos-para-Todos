@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DarkMode
@@ -111,6 +112,11 @@ data class DayRecord(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Permite que a janela se ajuste quando o teclado aparecer.
+        window.setSoftInputMode(
+            android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        )
 
         setContent {
             HabitosApp()
@@ -365,7 +371,10 @@ fun HabitosApp() {
                                                     displayedMonth.minusMonths(1)
                                             }
                                         ) {
-                                            Text("‹", style = MaterialTheme.typography.headlineMedium)
+                                            Text(
+                                                "‹",
+                                                style = MaterialTheme.typography.headlineMedium
+                                            )
                                         }
 
                                         TextButton(
@@ -374,7 +383,10 @@ fun HabitosApp() {
                                                     displayedMonth.plusMonths(1)
                                             }
                                         ) {
-                                            Text("›", style = MaterialTheme.typography.headlineMedium)
+                                            Text(
+                                                "›",
+                                                style = MaterialTheme.typography.headlineMedium
+                                            )
                                         }
                                     }
                                 }
@@ -663,16 +675,16 @@ fun HabitosApp() {
                     }
 
                     val positiveMarks = records.values.sumOf {
-                        it.emojis.count {
-                            emoji -> emoji == "✔️" ||
+                        it.emojis.count { emoji ->
+                            emoji == "✔️" ||
                                 emoji == "✅" ||
                                 emoji == "☑️"
                         }
                     }
 
                     val negativeMarks = records.values.sumOf {
-                        it.emojis.count {
-                            emoji -> emoji == "❌" ||
+                        it.emojis.count { emoji ->
+                            emoji == "❌" ||
                                 emoji == "❎" ||
                                 emoji == "🚫"
                         }
@@ -833,9 +845,13 @@ fun HabitosApp() {
                 )
             ) {
 
+                // AJUSTE: permite rolar o painel com o teclado aberto.
+
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .imePadding()
+                        .verticalScroll(rememberScrollState())
                         .padding(horizontal = 20.dp)
                         .padding(bottom = 28.dp),
 
@@ -969,7 +985,7 @@ fun HabitosApp() {
 
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(190.dp),
+                            .height(150.dp),
 
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
