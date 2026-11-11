@@ -6,6 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,7 +31,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
@@ -44,24 +48,30 @@ import java.util.Locale
 // CORES DO APLICATIVO
 // =====================================================
 
-private val Purple = Color(0xFF7667F8)
-private val Mint = Color(0xFF4FC6A5)
-private val Ink = Color(0xFF20233A)
-private val LightBackground = Color(0xFFF6F6FC)
-private val DarkBackground = Color(0xFF151625)
+// Paleta DARKMOOD: base ameixa/carvão com acentos neon controlados.
+private val Purple = Color(0xFFC16BFF)       // violeta neon
+private val Mint = Color(0xFF72F2C2)         // verde menta neon
+private val CompletedDayGreen = 0xFF176B45L   // verde para dias concluídos
+private val NeonPink = Color(0xFFFF62C8)
+private val NeonCyan = Color(0xFF5DDCFF)
+private val Ink = Color(0xFF281B32)
+private val LightBackground = Color(0xFFF5EFFA)
+private val DarkBackground = Color(0xFF100B18)
+private val DarkSurface = Color(0xFF1D1428)
+private val LightSurface = Color(0xFFFFFBFF)
 
 private val dayColors: List<Pair<String, Long?>> = listOf(
     "Sem cor" to null,
-    "Rosa" to 0xFFFFD6D6L,
-    "Vermelho" to 0xFFFFA8A8L,
-    "Laranja" to 0xFFFFD2A8L,
-    "Amarelo" to 0xFFFFE9A8L,
-    "Verde" to 0xFFB8EAC5L,
-    "Turquesa" to 0xFFB2E8E0L,
-    "Azul" to 0xFFBBD8FFL,
-    "Roxo" to 0xFFD9C8FFL,
-    "Lilás" to 0xFFEAD9FFL,
-    "Cinza" to 0xFFE0E0E8L
+    "Rosa neon" to 0xFF4A193D,
+    "Vermelho" to 0xFF4A2028,
+    "Laranja" to 0xFF4A2B19,
+    "Amarelo" to 0xFF4A3B18,
+    "Verde neon" to 0xFF173B2C,
+    "Turquesa" to 0xFF153B3A,
+    "Azul neon" to 0xFF172C4A,
+    "Roxo neon" to 0xFF33204A,
+    "Lilás" to 0xFF3C244A,
+    "Cinza" to 0xFF302B38
 )
 
 // =====================================================
@@ -69,22 +79,22 @@ private val dayColors: List<Pair<String, Long?>> = listOf(
 // =====================================================
 
 private val availableEmojis = listOf(
-    "✔️", "✅", "☑️", "❌", "❎", "🚫",
-    "🏋️", "💪", "🏃", "🚴", "🏊", "⚽",
-    "🥊", "🧘", "🤸", "🏃‍♂️", "🚶", "🧗",
-    "📚", "📝", "💻", "🎯", "🧠", "💼",
-    "📖", "✏️", "🎓", "📊", "🔬", "🖊️",
-    "🍎", "💧", "🥗", "💊", "🛌", "🥦",
-    "🍉", "🥑", "☀️", "🌙", "🚰", "🩺",
-    "😀", "😎", "😴", "😔", "😡", "🥳",
-    "🤩", "😊", "😢", "😌", "😍", "🤗",
-    "😰", "🥹", "😇", "😋", "🤔", "😤",
-    "❤️", "🥰", "👨‍👩‍👧", "🎉", "🤝", "🙏",
-    "💖", "💝", "🌹", "🐶", "🐱", "🏡",
-    "🎮", "🎬", "🎵", "🎨", "🎸", "🎹",
-    "📷", "🌳", "🏖️", "✈️", "🛍️", "☕",
-    "🔥", "🌱", "⭐", "✨", "🌈", "💤"
+    // DarkMood — coleção original do Hábitos para Todos
+    "dm_ghost_happy", "dm_ghost_love", "dm_ghost_sad", "dm_ghost_cry", "dm_ghost_angry", "dm_ghost_dizzy",
+    "dm_ghost_shock", "dm_black_cat", "dm_skull", "dm_stitched_heart", "dm_heart", "dm_broken_heart",
+    "dm_star", "dm_moon", "dm_sun", "dm_cloud_rain", "dm_storm", "dm_cloud", "dm_rainbow", "dm_check", "dm_cross",
+    "dm_dumbbell", "dm_kettlebell", "dm_ghost_run", "dm_skull_lift", "dm_shaker", "dm_sneaker", "dm_ghost_yoga",
+    "dm_skeleton", "dm_heartbeat", "dm_measure", "dm_strong_ghost", "dm_books", "dm_phone", "dm_bike", "dm_trophy",
+    "dm_graduate_skull", "dm_lightbulb", "dm_scroll", "dm_quill", "dm_hourglass", "dm_brain", "dm_target",
+    "dm_water", "dm_apple", "dm_drink", "dm_plant", "dm_lotus", "dm_potion", "dm_groot", "dm_sleep_cat",
+    "dm_roll", "dm_bed", "dm_health", "dm_shield", "dm_popcorn", "dm_gamepad", "dm_headphones", "dm_music",
+    "dm_movie", "dm_camera", "dm_art", "dm_plane", "dm_suitcase", "dm_mountain", "dm_fire", "dm_map",
+    "dm_crown", "dm_medal", "dm_alert_medal", "dm_award", "dm_ghost_celebrate", "dm_trophy_gold", "dm_pumpkin",
+    "dm_gift", "dm_comet", "dm_gold_star", "dm_party", "dm_fireworks", "dm_success", "dm_cancel", "dm_warning",
+    "dm_help", "dm_info", "dm_settings", "dm_home", "dm_calendar", "dm_clock", "dm_trash", "dm_share", "dm_bookmark", "dm_more"
 )
+
+private val calendarCategories = listOf("Geral", "Treino", "Estudos", "Leitura", "Saúde")
 
 private val workoutEmojis = setOf(
     "🏋️", "💪", "🏃", "🚴", "🏊", "⚽",
@@ -128,7 +138,7 @@ class MainActivity : ComponentActivity() {
 // APLICATIVO PRINCIPAL
 // =====================================================
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HabitosApp() {
     val context = LocalContext.current
@@ -148,11 +158,16 @@ fun HabitosApp() {
     }
 
     var dark by remember {
-        mutableStateOf(prefs.getBoolean("dark", false))
+        mutableStateOf(prefs.getBoolean("dark", true))
     }
 
     var currentTab by remember {
         mutableIntStateOf(0)
+    }
+
+    // Cada categoria possui seu próprio calendário e conjunto de registros.
+    var selectedCalendar by remember {
+        mutableStateOf("Geral")
     }
 
     var showDayDetails by remember {
@@ -173,20 +188,37 @@ fun HabitosApp() {
 
     var records by remember {
         mutableStateOf(
-            loadRecords(prefs.getString("day_records_v3", null))
+            loadRecords(
+                prefs.getString("day_records_v3_Geral", null)
+                    ?: prefs.getString("day_records_v3", null)
+            )
         )
     }
 
     val background = if (dark) DarkBackground else LightBackground
-    val cardColor = if (dark) Color(0xFF23253A) else Color.White
-    val textColor = if (dark) Color(0xFFF4F4FC) else Ink
+    val cardColor = if (dark) DarkSurface else LightSurface
+    val textColor = if (dark) Color(0xFFFFF5FF) else Ink
 
     fun persistRecords(updated: Map<String, DayRecord>) {
         records = updated
 
         prefs.edit()
-            .putString("day_records_v3", saveRecords(updated))
+            .putString("day_records_v3_${selectedCalendar}", saveRecords(updated))
             .apply()
+    }
+
+    // Um toque marca o dia como concluído, sem apagar anotações ou outros emojis.
+    fun markDayCompleted(date: LocalDate) {
+        selectedDate = date
+        val key = date.toString()
+        val currentRecord = records[key] ?: DayRecord()
+
+        val updatedRecord = currentRecord.copy(
+            color = CompletedDayGreen,
+            emojis = (listOf("✔️") + currentRecord.emojis.filterNot { it == "✔️" }).distinct()
+        )
+
+        persistRecords(records + (key to updatedRecord))
     }
 
     fun openDay(date: LocalDate) {
@@ -225,15 +257,21 @@ fun HabitosApp() {
             darkColorScheme(
                 primary = Purple,
                 secondary = Mint,
+                tertiary = NeonPink,
                 background = background,
-                surface = cardColor
+                surface = cardColor,
+                onPrimary = Color(0xFF1B1024),
+                onSecondary = Color(0xFF10251E)
             )
         } else {
             lightColorScheme(
                 primary = Purple,
                 secondary = Mint,
+                tertiary = NeonPink,
                 background = background,
-                surface = cardColor
+                surface = cardColor,
+                onPrimary = Color(0xFF1B1024),
+                onSecondary = Color(0xFF10251E)
             )
         }
     ) {
@@ -253,7 +291,14 @@ fun HabitosApp() {
                                 contentDescription = "Calendário"
                             )
                         },
-                        label = { Text("Calendário") }
+                        label = { Text("Calendário") },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Purple,
+                            selectedTextColor = Purple,
+                            indicatorColor = Purple.copy(alpha = 0.18f),
+                            unselectedIconColor = textColor.copy(alpha = 0.58f),
+                            unselectedTextColor = textColor.copy(alpha = 0.58f)
+                        )
                     )
 
                     NavigationBarItem(
@@ -265,7 +310,14 @@ fun HabitosApp() {
                                 contentDescription = "Estatísticas"
                             )
                         },
-                        label = { Text("Estatísticas") }
+                        label = { Text("Estatísticas") },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Purple,
+                            selectedTextColor = Purple,
+                            indicatorColor = Purple.copy(alpha = 0.18f),
+                            unselectedIconColor = textColor.copy(alpha = 0.58f),
+                            unselectedTextColor = textColor.copy(alpha = 0.58f)
+                        )
                     )
                 }
             }
@@ -295,7 +347,7 @@ fun HabitosApp() {
                     ) {
                         Column {
                             Text(
-                                "Meu calendário",
+                                selectedCalendar,
                                 color = textColor,
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold
@@ -332,11 +384,62 @@ fun HabitosApp() {
 
                 if (currentTab == 0) {
 
+                    // SELETOR DE CALENDÁRIOS INDEPENDENTES
+
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                            Text(
+                                "Meus calendários",
+                                color = textColor,
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                calendarCategories.forEach { category ->
+                                    val selected = selectedCalendar == category
+                                    FilterChip(
+                                        selected = selected,
+                                        onClick = {
+                                            if (selectedCalendar != category) {
+                                                selectedCalendar = category
+                                                records = loadRecords(
+                                                    prefs.getString("day_records_v3_${category}", null)
+                                                        ?: if (category == "Geral") prefs.getString("day_records_v3", null) else null
+                                                )
+                                                selectedDate = today
+                                            }
+                                        },
+                                        label = { Text(category) },
+                                        leadingIcon = if (selected) {
+                                            { Text("✦", color = Purple) }
+                                        } else null,
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = Purple.copy(alpha = if (dark) 0.22f else 0.13f),
+                                            selectedLabelColor = textColor
+                                        )
+                                    )
+                                }
+                            }
+                            Text(
+                                "Cada categoria mantém seus registros separados.",
+                                color = textColor.copy(alpha = 0.58f),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+
                     // CALENDÁRIO
 
                     item {
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(1.dp, Purple.copy(alpha = if (dark) 0.24f else 0.16f), RoundedCornerShape(24.dp)),
                             shape = RoundedCornerShape(24.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = cardColor
@@ -453,13 +556,15 @@ fun HabitosApp() {
                                                     val isSelected =
                                                         date == selectedDate
 
+                                                    val isCompleted =
+                                                        record?.emojis?.contains("✔️") == true
+
                                                     val dayBackground =
-                                                        if (record?.color != null) {
-                                                            Color(record.color)
-                                                        } else if (isSelected) {
-                                                            Purple.copy(alpha = 0.12f)
-                                                        } else {
-                                                            Color.Transparent
+                                                        when {
+                                                            isCompleted -> Color(CompletedDayGreen)
+                                                            record?.color != null -> Color(record.color)
+                                                            isSelected -> Purple.copy(alpha = if (dark) 0.20f else 0.12f)
+                                                            else -> Color.Transparent
                                                         }
 
                                                     Column(
@@ -478,9 +583,14 @@ fun HabitosApp() {
                                                                     Modifier
                                                                 }
                                                             )
-                                                            .clickable {
-                                                                openDay(date)
-                                                            }
+                                                            .combinedClickable(
+                                                                onClick = {
+                                                                    markDayCompleted(date)
+                                                                },
+                                                                onLongClick = {
+                                                                    openDay(date)
+                                                                }
+                                                            )
                                                             .padding(2.dp),
 
                                                         horizontalAlignment =
@@ -493,12 +603,13 @@ fun HabitosApp() {
                                                         Text(
                                                             text = day.toString(),
 
-                                                            color = textColor,
+                                                            color = if (isCompleted) Color.White else textColor,
 
                                                             fontWeight =
                                                                 if (
                                                                     date == today ||
-                                                                    isSelected
+                                                                    isSelected ||
+                                                                    isCompleted
                                                                 ) {
                                                                     FontWeight.Bold
                                                                 } else {
@@ -508,17 +619,20 @@ fun HabitosApp() {
                                                             style = MaterialTheme.typography.bodyMedium
                                                         )
 
-                                                        val emojiPreview =
-                                                            record?.emojis
-                                                                ?.take(2)
-                                                                ?.joinToString("")
+                                                        val emojiPreview = record?.emojis?.let { emojis ->
+                                                            if ("✔️" in emojis) {
+                                                                listOf("✔️") + emojis.filterNot { it == "✔️" }.take(1)
+                                                            } else {
+                                                                emojis.take(2)
+                                                            }
+                                                        }.orEmpty()
 
-                                                        if (!emojiPreview.isNullOrEmpty()) {
-                                                            Text(
-                                                                text = emojiPreview,
-                                                                style = MaterialTheme.typography.labelSmall,
-                                                                maxLines = 1
-                                                            )
+                                                        if (emojiPreview.isNotEmpty()) {
+                                                            Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
+                                                                emojiPreview.forEach { token ->
+                                                                    DarkMoodEmoji(token, Modifier.size(17.dp))
+                                                                }
+                                                            }
                                                         } else if (
                                                             record?.note?.isNotBlank() == true
                                                         ) {
@@ -543,7 +657,7 @@ fun HabitosApp() {
                                 Spacer(Modifier.height(12.dp))
 
                                 Text(
-                                    "Toque em qualquer dia para registrar suas atividades.",
+                                    "Toque em um dia para marcar como concluído. Segure para adicionar uma anotação.",
                                     color = textColor.copy(alpha = 0.65f),
                                     style = MaterialTheme.typography.bodySmall
                                 )
@@ -559,6 +673,7 @@ fun HabitosApp() {
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .border(1.dp, Purple.copy(alpha = if (dark) 0.22f else 0.14f), RoundedCornerShape(22.dp))
                                 .clickable {
                                     openDay(selectedDate)
                                 },
@@ -620,10 +735,11 @@ fun HabitosApp() {
                                 } else {
 
                                     if (record.emojis.isNotEmpty()) {
-                                        Text(
-                                            record.emojis.joinToString(" "),
-                                            style = MaterialTheme.typography.headlineMedium
-                                        )
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            record.emojis.forEach { token ->
+                                                DarkMoodEmoji(token, Modifier.size(38.dp))
+                                            }
+                                        }
                                     }
 
                                     if (record.note.isNotBlank()) {
@@ -676,7 +792,9 @@ fun HabitosApp() {
 
                     val positiveMarks = records.values.sumOf {
                         it.emojis.count { emoji ->
-                            emoji == "✔️" ||
+                            emoji == "dm_check" ||
+                                emoji == "dm_success" ||
+                                emoji == "✔️" ||
                                 emoji == "✅" ||
                                 emoji == "☑️"
                         }
@@ -684,14 +802,20 @@ fun HabitosApp() {
 
                     val negativeMarks = records.values.sumOf {
                         it.emojis.count { emoji ->
-                            emoji == "❌" ||
+                            emoji == "dm_cross" ||
+                                emoji == "dm_cancel" ||
+                                emoji == "❌" ||
                                 emoji == "❎" ||
                                 emoji == "🚫"
                         }
                     }
 
+                    val darkMoodWorkoutEmojis = setOf(
+                        "dm_dumbbell", "dm_kettlebell", "dm_ghost_run", "dm_skull_lift",
+                        "dm_sneaker", "dm_ghost_yoga", "dm_skeleton", "dm_bike"
+                    )
                     val workoutDays = records.values.count { record ->
-                        record.emojis.any { it in workoutEmojis }
+                        record.emojis.any { it in workoutEmojis || it in darkMoodWorkoutEmojis }
                     }
 
                     val noteDays = records.values.count {
@@ -724,7 +848,7 @@ fun HabitosApp() {
                         StatisticCard(
                             title = "Dias registrados",
                             value = totalDays.toString(),
-                            emoji = "📅",
+                            emoji = "dm_calendar",
                             description = "Dias com alguma marcação",
                             cardColor = cardColor,
                             textColor = textColor
@@ -735,7 +859,7 @@ fun HabitosApp() {
                         StatisticCard(
                             title = "Atividades físicas",
                             value = workoutDays.toString(),
-                            emoji = "💪",
+                            emoji = "dm_dumbbell",
                             description = "Dias com emojis de exercícios",
                             cardColor = cardColor,
                             textColor = textColor
@@ -746,7 +870,7 @@ fun HabitosApp() {
                         StatisticCard(
                             title = "Marcações positivas",
                             value = positiveMarks.toString(),
-                            emoji = "✔️",
+                            emoji = "dm_check",
                             description = "Total de marcações positivas",
                             cardColor = cardColor,
                             textColor = textColor
@@ -757,7 +881,7 @@ fun HabitosApp() {
                         StatisticCard(
                             title = "Marcações negativas",
                             value = negativeMarks.toString(),
-                            emoji = "❌",
+                            emoji = "dm_cross",
                             description = "Total de marcações negativas",
                             cardColor = cardColor,
                             textColor = textColor
@@ -768,7 +892,7 @@ fun HabitosApp() {
                         StatisticCard(
                             title = "Dias com anotações",
                             value = noteDays.toString(),
-                            emoji = "📝",
+                            emoji = "dm_scroll",
                             description = "Dias com notas salvas",
                             cardColor = cardColor,
                             textColor = textColor
@@ -859,7 +983,7 @@ fun HabitosApp() {
                 ) {
 
                     Text(
-                        "Registro do dia",
+                        "Registro — $selectedCalendar",
                         color = textColor,
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
@@ -1027,9 +1151,9 @@ fun HabitosApp() {
 
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    emoji,
-                                    style = MaterialTheme.typography.titleMedium
+                                DarkMoodEmoji(
+                                    emoji = emoji,
+                                    modifier = Modifier.size(30.dp)
                                 )
                             }
                         }
@@ -1144,6 +1268,25 @@ fun HabitosApp() {
     }
 }
 
+// Emojis ilustrados exclusivos DARKMOOD. Os tokens são salvos como texto no registro.
+@Composable
+private fun DarkMoodEmoji(emoji: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val resourceId = remember(emoji) {
+        context.resources.getIdentifier(emoji, "drawable", context.packageName)
+    }
+    if (resourceId != 0) {
+        androidx.compose.foundation.Image(
+            painter = painterResource(resourceId),
+            contentDescription = emoji.removePrefix("dm_").replace('_', ' '),
+            modifier = modifier,
+            contentScale = ContentScale.Fit
+        )
+    } else {
+        Text(emoji, modifier = modifier)
+    }
+}
+
 // =====================================================
 // COMPONENTE DE ESTATÍSTICAS
 // =====================================================
@@ -1158,7 +1301,9 @@ private fun StatisticCard(
     textColor: Color
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, Purple.copy(alpha = 0.20f), RoundedCornerShape(20.dp)),
 
         shape = RoundedCornerShape(20.dp),
 
@@ -1178,15 +1323,15 @@ private fun StatisticCard(
                 modifier = Modifier
                     .size(54.dp)
                     .background(
-                        Purple.copy(alpha = 0.12f),
+                        Purple.copy(alpha = 0.18f),
                         RoundedCornerShape(16.dp)
                     ),
 
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    emoji,
-                    style = MaterialTheme.typography.headlineSmall
+                DarkMoodEmoji(
+                    emoji = emoji,
+                    modifier = Modifier.size(34.dp)
                 )
             }
 
