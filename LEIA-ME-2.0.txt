@@ -1,0 +1,22 @@
+HÁBITOS PARA TODOS 2.0 — PRIMEIRA ETAPA
+
+O que mudou nesta atualização:
+- Calendários separados por categoria: Geral, Treino, Estudos, Leitura e Saúde.
+- Cada categoria salva seus registros em uma chave própria do armazenamento local.
+- A categoria Geral tenta aproveitar os registros antigos salvos em day_records_v3, preservando os dados da versão anterior.
+- Seletor horizontal de categorias na tela do calendário.
+- Coleção de símbolos reorganizada com tema sombrio/fantasia e mantendo ✔️ e ❌.
+- O título do calendário e do painel de registro acompanha a categoria selecionada.
+
+IMPORTANTE SOBRE A COLEÇÃO DARKMOOD:
+Nesta primeira etapa foi preparada a seleção temática de emojis Unicode. Os personagens ilustrados exclusivos criados para o projeto ainda precisam ser separados em arquivos PNG individuais com transparência e integrados ao seletor. Isso será feito na próxima etapa para que cada desenho apareça corretamente em tamanho pequeno, sem usar a prancha inteira como uma única imagem.
+
+COMO GERAR O APK:
+1. Extraia o ZIP.
+2. Envie os arquivos para o repositório GitHub, substituindo os arquivos antigos.
+3. Abra Actions no GitHub.
+4. Execute o workflow "Compilar APK Android" (ou faça push na branch main).
+5. Baixe o artefato "HabitosParaTodos-APK-v2" quando a execução terminar.
+
+A compilação ainda precisa ser validada pelo GitHub Actions. Não instalar antes de o workflow concluir com sucesso.
+\n\nDARKMOOD — coleção ilustrada integrada\nOs emojis DARKMOOD estão em app/src/main/res/drawable-nodpi como PNGs individuais com transparência. O seletor grava tokens dm_* nos registros e exibe as ilustrações no seletor, calendário e detalhe do dia.\n

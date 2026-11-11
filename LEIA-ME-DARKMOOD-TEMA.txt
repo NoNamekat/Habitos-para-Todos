@@ -1,0 +1,15 @@
+HÁBITOS PARA TODOS 2.0 — TEMA DARKMOOD
+
+Esta atualização aplica a identidade visual DARKMOOD ao aplicativo:
+- Tema escuro padrão em instalações novas, com opção de alternar para o tema claro.
+- Fundo carvão/ameixa e cartões em roxo profundo.
+- Acentos violeta neon, rosa e verde menta.
+- Contornos neon discretos em cartões e realce de navegação.
+- Cores de marcação diária adaptadas para tons escuros com contraste adequado.
+- Cartões de estatísticas passam a utilizar ilustrações DARKMOOD em vez de emojis comuns.
+
+A preferência de tema já salva no aparelho é respeitada. Se o usuário já tinha escolhido tema claro, ele continuará claro até alternar manualmente.
+
+A coleção de ilustrações continua em app/src/main/res/drawable-nodpi.
+
+Antes de instalar, execute o workflow Android no GitHub Actions e confirme que a compilação terminou com sucesso.
