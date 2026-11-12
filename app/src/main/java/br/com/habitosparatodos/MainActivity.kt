@@ -5,6 +5,16 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -33,6 +43,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -181,6 +195,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun HabitosApp() {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val prefs = remember { context.getSharedPreferences("habitos_local", 0) }
     val today = remember { LocalDate.now() }
 
@@ -189,13 +204,16 @@ fun HabitosApp() {
     var dark by remember { mutableStateOf(prefs.getBoolean("dark", true)) }
     var rpgTheme by remember { mutableStateOf(prefs.getString("rpg_theme", "Arcano") ?: "Arcano") }
     val accent = when (rpgTheme) {
-        "Floresta" -> Color(0xFF61D69B)
-        "Aurora" -> Color(0xFFFF83C8)
-        else -> Color(0xFFC16BFF)
+        "Floresta" -> Color(0xFF55B982)
+        "Aurora" -> Color(0xFFFF79B8)
+        else -> Color(0xFF9B6DFF)
     }
     var currentTab by remember { mutableIntStateOf(0) }
     var selectedCalendar by remember { mutableStateOf("Geral") }
     var showDayDetails by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
+    var xpGainVisible by remember { mutableStateOf(false) }
+    var levelUpVisible by remember { mutableStateOf(false) }
     var dayNote by remember { mutableStateOf("") }
     var selectedColor by remember { mutableStateOf<Long?>(null) }
     var selectedEmojis by remember { mutableStateOf(setOf<String>()) }
@@ -209,10 +227,17 @@ fun HabitosApp() {
         )
     }
 
-    val background = if (dark) DarkBackground else LightBackground
-    val cardColor = if (dark) DarkSurface else LightSurface
-    val textColor = if (dark) Color(0xFFFFF5FF) else Ink
-    val adventureXp = records.values.count { "✔️" in it.emojis } * 20
+    val background = when (rpgTheme) {
+        "Floresta" -> if (dark) Color(0xFF081810) else Color(0xFFEAF6ED)
+        "Aurora" -> if (dark) Color(0xFF1B0D1A) else Color(0xFFFFF0F7)
+        else -> if (dark) Color(0xFF100B18) else Color(0xFFF3EDFF)
+    }
+    val cardColor = when (rpgTheme) {
+        "Floresta" -> if (dark) Color(0xFF14291D) else Color(0xFFF8FFF9)
+        "Aurora" -> if (dark) Color(0xFF2B1728) else Color(0xFFFFFAFC)
+        else -> if (dark) Color(0xFF21172F) else Color(0xFFFFFBFF)
+    }
+    val textColor = if (dark) Color(0xFFFFF5FF) else Color(0xFF30243A)
 
     fun persistRecords(updated: Map<String, DayRecord>) {
         records = updated
@@ -227,6 +252,7 @@ fun HabitosApp() {
         val key = date.toString()
         val currentRecord = records[key] ?: DayRecord()
         val isCompleted = "✔️" in currentRecord.emojis
+        val previousLevel = (records.values.count { "✔️" in it.emojis } * 20) / 100 + 1
 
         val updatedRecord = if (isCompleted) {
             currentRecord.copy(
@@ -247,6 +273,12 @@ fun HabitosApp() {
         }
 
         persistRecords(updatedRecords)
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        if (!isCompleted) {
+            xpGainVisible = true
+            val newCompletedDays = updatedRecords.values.count { "✔️" in it.emojis }
+            levelUpVisible = (newCompletedDays * 20) / 100 + 1 > previousLevel
+        }
     }
 
     fun openDay(date: LocalDate) {
@@ -315,9 +347,9 @@ fun HabitosApp() {
                         icon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Calendário") },
                         label = { Text("Calendário") },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Purple,
-                            selectedTextColor = Purple,
-                            indicatorColor = Purple.copy(alpha = 0.18f),
+                            selectedIconColor = accent,
+                            selectedTextColor = accent,
+                            indicatorColor = accent.copy(alpha = 0.18f),
                             unselectedIconColor = textColor.copy(alpha = 0.58f),
                             unselectedTextColor = textColor.copy(alpha = 0.58f)
                         )
@@ -328,9 +360,9 @@ fun HabitosApp() {
                         icon = { Icon(Icons.Default.Insights, contentDescription = "Estatísticas") },
                         label = { Text("Estatísticas") },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Purple,
-                            selectedTextColor = Purple,
-                            indicatorColor = Purple.copy(alpha = 0.18f),
+                            selectedIconColor = accent,
+                            selectedTextColor = accent,
+                            indicatorColor = accent.copy(alpha = 0.18f),
                             unselectedIconColor = textColor.copy(alpha = 0.58f),
                             unselectedTextColor = textColor.copy(alpha = 0.58f)
                         )
@@ -365,17 +397,20 @@ fun HabitosApp() {
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
-                        IconButton(
-                            onClick = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = {
                                 dark = !dark
                                 prefs.edit().putBoolean("dark", dark).apply()
+                            }) {
+                                Icon(
+                                    imageVector = if (dark) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                    contentDescription = if (dark) "Ativar modo claro" else "Ativar modo escuro",
+                                    tint = textColor
+                                )
                             }
-                        ) {
-                            Icon(
-                                imageVector = if (dark) Icons.Default.LightMode else Icons.Default.DarkMode,
-                                contentDescription = "Alternar tema",
-                                tint = textColor
-                            )
+                            IconButton(onClick = { showSettings = true }) {
+                                Text("⚙️", style = MaterialTheme.typography.titleLarge)
+                            }
                         }
                     }
                 }
@@ -383,108 +418,24 @@ fun HabitosApp() {
                 if (currentTab == 0) {
                     item {
                         Card(
-                            modifier = Modifier.fillMaxWidth().border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(18.dp)),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(containerColor = cardColor)
-                        ) {
-                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                                Text("PERSONALIZE SUA JORNADA", color = accent, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
-                                Text("Escolha a atmosfera do seu RPG", color = textColor, style = MaterialTheme.typography.bodyMedium)
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                                    listOf("Arcano", "Floresta", "Aurora").forEach { theme ->
-                                        FilterChip(
-                                            selected = rpgTheme == theme,
-                                            onClick = { rpgTheme = theme; prefs.edit().putString("rpg_theme", theme).apply() },
-                                            label = { Text(when (theme) { "Floresta" -> "🌿 Floresta"; "Aurora" -> "🌸 Aurora"; else -> "🔮 Arcano" }) },
-                                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = accent.copy(alpha = 0.22f), selectedLabelColor = textColor)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    item {
-                        Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                            Text(
-                                "Meus calendários",
-                                color = textColor,
-                                fontWeight = FontWeight.SemiBold,
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                calendarCategories.forEach { category ->
-                                    val selected = selectedCalendar == category
-                                    FilterChip(
-                                        selected = selected,
-                                        onClick = {
-                                            if (selectedCalendar != category) {
-                                                selectedCalendar = category
-                                                records = loadRecords(
-                                                    prefs.getString("day_records_v3_${category}", null)
-                                                        ?: if (category == "Geral") {                                                            prefs.getString("day_records_v3", null)
-                                                        } else null
-                                                )
-                                                selectedDate = today
-                                            }
-                                        },
-                                        label = { Text(category) },
-                                        leadingIcon = if (selected) {
-                                            { Text("✦", color = Purple) }
-                                        } else null,
-                                        colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = Purple.copy(alpha = if (dark) 0.22f else 0.13f),
-                                            selectedLabelColor = textColor
-                                        )
-                                    )
-                                }
-                            }
-                            Text(
-                                "Cada categoria mantém seus registros separados.",
-                                color = textColor.copy(alpha = 0.58f),
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-
-                    item {
-                        val completedDays = records.values.count { "✔️" in it.emojis }
-                        val totalXp = completedDays * 20
-                        val currentLevel = totalXp / 100 + 1
-                        val xpInLevel = totalXp % 100
-                        XpProgressCard(
-                            level = currentLevel,
-                            totalXp = totalXp,
-                            xpInLevel = xpInLevel,
-                            completedDays = completedDays,
-                            cardColor = cardColor,
-                            textColor = textColor,
-                            accent = accent
-                        )
-                    }
-
-                    item {
-                        AdventureMapCard(
-                            totalXp = adventureXp,
-                            cardColor = cardColor,
-                            textColor = textColor,
-                            accent = accent
-                        )
-                    }
-
-                    item {
-                        Card(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .border(
                                     1.dp,
-                                    Purple.copy(alpha = if (dark) 0.24f else 0.16f),
+                                    accent.copy(alpha = if (dark) 0.24f else 0.16f),
                                     RoundedCornerShape(24.dp)
-                                ),
+                                )
+                                .pointerInput(displayedMonth) {
+                                    var dragDistance = 0f
+                                    detectHorizontalDragGestures(
+                                        onHorizontalDrag = { _, amount -> dragDistance += amount },
+                                        onDragEnd = {
+                                            if (dragDistance > 70f) displayedMonth = displayedMonth.minusMonths(1)
+                                            else if (dragDistance < -70f) displayedMonth = displayedMonth.plusMonths(1)
+                                            dragDistance = 0f
+                                        }
+                                    )
+                                },
                             shape = RoundedCornerShape(24.dp),
                             colors = CardDefaults.cardColors(containerColor = cardColor)
                         ) {
@@ -556,7 +507,7 @@ fun HabitosApp() {
                                                     val dayBackground = when {
                                                         record?.color != null -> Color(record.color)
                                                         isCompleted -> Color(CompletedDayGreen)
-                                                        isSelected -> Purple.copy(alpha = if (dark) 0.20f else 0.12f)
+                                                        isSelected -> accent.copy(alpha = if (dark) 0.20f else 0.12f)
                                                         else -> Color.Transparent
                                                     }
 
@@ -566,13 +517,12 @@ fun HabitosApp() {
                                                             .clip(CircleShape)
                                                             .background(dayBackground)
                                                             .then(
-                                                                if (isSelected) {
-                                                                    Modifier.border(
-                                                                        2.dp,
-                                                                        if (isCompleted) Mint else Purple,
-                                                                        CircleShape
-                                                                    )
-                                                                } else Modifier
+                                                                when {
+                                                                    date == today && isSelected -> Modifier.border(2.dp, accent, CircleShape)
+                                                                    date == today -> Modifier.border(2.dp, accent.copy(alpha = 0.9f), CircleShape)
+                                                                    isSelected -> Modifier.border(2.dp, accent, CircleShape)
+                                                                    else -> Modifier
+                                                                }
                                                             )
                                                             .combinedClickable(
                                                                 onClick = { markDayCompleted(date) },
@@ -619,12 +569,76 @@ fun HabitosApp() {
                                 HorizontalDivider(color = textColor.copy(alpha = 0.1f))
                                 Spacer(Modifier.height(12.dp))
                                 Text(
-                                    "Toque em um dia para marcar ou desmarcar. Segure para editar cor, emojis e anotação.",
+                                    "Toque em um dia para concluir ou retirar a conclusão. Pressione e segure para adicionar anotações e editar o registro.",
                                     color = textColor.copy(alpha = 0.65f),
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
                         }
+                    }
+
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                            Text(
+                                "Meus calendários",
+                                color = textColor,
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                calendarCategories.forEach { category ->
+                                    val selected = selectedCalendar == category
+                                    FilterChip(
+                                        selected = selected,
+                                        onClick = {
+                                            if (selectedCalendar != category) {
+                                                selectedCalendar = category
+                                                records = loadRecords(
+                                                    prefs.getString("day_records_v3_${category}", null)
+                                                        ?: if (category == "Geral") {                                                            prefs.getString("day_records_v3", null)
+                                                        } else null
+                                                )
+                                                selectedDate = today
+                                            }
+                                        },
+                                        label = { Text(category) },
+                                        leadingIcon = if (selected) {
+                                            { Text("✦", color = accent) }
+                                        } else null,
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = accent.copy(alpha = if (dark) 0.22f else 0.13f),
+                                            selectedLabelColor = textColor
+                                        )
+                                    )
+                                }
+                            }
+                            Text(
+                                "Cada categoria mantém seus registros separados.",
+                                color = textColor.copy(alpha = 0.58f),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+
+                    item {
+                        val completedDays = records.values.count { "✔️" in it.emojis }
+                        val totalXp = completedDays * 20
+                        val currentLevel = totalXp / 100 + 1
+                        val xpInLevel = totalXp % 100
+                        XpProgressCard(
+                            level = currentLevel,
+                            totalXp = totalXp,
+                            xpInLevel = xpInLevel,
+                            completedDays = completedDays,
+                            cardColor = cardColor,
+                            textColor = textColor,
+                            accent = accent
+                        )
                     }
 
                     item {
@@ -634,7 +648,7 @@ fun HabitosApp() {
                                 .fillMaxWidth()
                                 .border(
                                     1.dp,
-                                    Purple.copy(alpha = if (dark) 0.22f else 0.14f),
+                                    accent.copy(alpha = if (dark) 0.22f else 0.14f),
                                     RoundedCornerShape(22.dp)
                                 )
                                 .clickable { openDay(selectedDate) },
@@ -667,11 +681,29 @@ fun HabitosApp() {
                                             style = MaterialTheme.typography.bodySmall
                                         )
                                     }
-                                    Text("Editar ✏️", color = Purple, fontWeight = FontWeight.SemiBold)
+                                    TextButton(onClick = { openDay(selectedDate) }) {
+                                        Text("Editar ✏️", color = accent, fontWeight = FontWeight.SemiBold)
+                                    }
                                 }
 
                                 if (record == null || record.isEmpty()) {
-                                    Text("Nenhum registro neste dia.", color = textColor.copy(alpha = 0.65f))
+                                    Text("Nenhum registro neste dia.", color = textColor.copy(alpha = 0.72f))
+                                    Text("Adicione emojis, uma cor ou uma anotação para guardar esse momento.", color = textColor.copy(alpha = 0.62f), style = MaterialTheme.typography.bodySmall)
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        listOf("dm_check", "dm_star", "dm_heart", "dm_books", "dm_dumbbell").forEach { shortcut ->
+                                            Box(
+                                                Modifier.size(42.dp).clip(RoundedCornerShape(12.dp))
+                                                    .background(textColor.copy(alpha = 0.06f))
+                                                    .clickable {
+                                                        openDay(selectedDate)
+                                                        selectedEmojis = selectedEmojis + shortcut
+                                                    },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                DarkMoodEmoji(shortcut, Modifier.size(28.dp))
+                                            }
+                                        }
+                                    }
                                 } else {
                                     if (record.emojis.isNotEmpty()) {
                                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -700,192 +732,236 @@ fun HabitosApp() {
                                         }
                                     }
                                 }
+                                val isCompleted = record?.emojis?.contains("✔️") == true
+                                Button(
+                                    onClick = { markDayCompleted(selectedDate) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (isCompleted) textColor.copy(alpha = 0.12f) else accent
+                                    )
+                                ) {
+                                    Text(
+                                        if (isCompleted) "Dia concluído ✓" else "Concluir dia • +20 XP",
+                                        color = if (isCompleted) textColor else Color(0xFF1B1024)
+                                    )
+                                }
+                                AnimatedVisibility(
+                                    visible = xpGainVisible,
+                                    enter = fadeIn() + slideInVertically { -it / 2 },
+                                    exit = fadeOut() + slideOutVertically { -it / 2 }
+                                ) {
+                                    Text(
+                                        if (levelUpVisible) "🎉 NÍVEL AUMENTOU! +20 XP" else "+20 XP • Boa jornada!",
+                                        modifier = Modifier.fillMaxWidth(),
+                                        color = accent,
+                                        textAlign = TextAlign.Center,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                LaunchedEffect(xpGainVisible) {
+                                    if (xpGainVisible) {
+                                        kotlinx.coroutines.delay(1500)
+                                        xpGainVisible = false
+                                        levelUpVisible = false
+                                    }
+                                }
+                                if (record == null || record.isEmpty()) {
+                                    TextButton(onClick = { openDay(selectedDate) }, modifier = Modifier.fillMaxWidth()) {
+                                        Text("Criar registro", color = accent)
+                                    }
+                                }
                             }
                         }
                     }
                 } else {
+                    val completedDates = records.filterValues { "✔️" in it.emojis }.keys.mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }.sorted()
+                    val completedDays = completedDates.size
+                    val totalXp = completedDays * 20
                     val totalDays = records.values.count { !it.isEmpty() }
-                    val positiveMarks = records.values.sumOf { record ->
-                        record.emojis.count { it == "dm_check" || it == "dm_success" || it == "✔️" || it == "✅" || it == "☑️" }
-                    }
-                    val negativeMarks = records.values.sumOf { record ->
-                        record.emojis.count { it == "dm_cross" || it == "dm_cancel" || it == "❌" || it == "❎" || it == "🚫" }
-                    }
-                    val darkMoodWorkoutEmojis = setOf(
-                        "dm_dumbbell", "dm_kettlebell", "dm_ghost_run", "dm_skull_lift",
-                        "dm_sneaker", "dm_ghost_yoga", "dm_skeleton", "dm_bike"
-                    )
-                    val workoutDays = records.values.count { record ->
-                        record.emojis.any { it in workoutEmojis || it in darkMoodWorkoutEmojis }
-                    }
                     val noteDays = records.values.count { it.note.isNotBlank() }
-                    val monthRecords = records.filterKeys {
-                        runCatching { YearMonth.from(LocalDate.parse(it)) == displayedMonth }.getOrDefault(false)
+                    val positiveMarks = records.values.sumOf { record -> record.emojis.count { it in setOf("dm_check", "dm_success", "✔️", "✅", "☑️") } }
+                    val negativeMarks = records.values.sumOf { record -> record.emojis.count { it in setOf("dm_cross", "dm_cancel", "❌", "❎", "🚫") } }
+                    val darkMoodWorkoutEmojis = setOf("dm_dumbbell", "dm_kettlebell", "dm_ghost_run", "dm_skull_lift", "dm_sneaker", "dm_ghost_yoga", "dm_skeleton", "dm_bike")
+                    val workoutDays = records.values.count { record -> record.emojis.any { it in workoutEmojis || it in darkMoodWorkoutEmojis } }
+                    val monthRecords = records.filterKeys { runCatching { YearMonth.from(LocalDate.parse(it)) == displayedMonth }.getOrDefault(false) }
+                    var currentStreak = 0
+                    var cursor = LocalDate.now()
+                    while (completedDates.contains(cursor)) { currentStreak++; cursor = cursor.minusDays(1) }
+                    var bestStreak = 0
+                    var runningStreak = 0
+                    var previous: LocalDate? = null
+                    completedDates.forEach { date ->
+                        runningStreak = if (previous?.plusDays(1) == date) runningStreak + 1 else 1
+                        bestStreak = maxOf(bestStreak, runningStreak)
+                        previous = date
                     }
 
                     item {
-                        Text(
-                            "Suas estatísticas",
-                            color = textColor,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(Modifier.height(5.dp))
-                        Text("Um resumo das suas marcações no calendário.", color = textColor.copy(alpha = 0.65f))
-                    }
-                    item {
-                        StatisticCard(
-                            title = "Dias registrados",
-                            value = totalDays.toString(),
-                            emoji = "dm_calendar",
-                            description = "Dias com alguma marcação",
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )
-                    }
-                    item {
-                        val completedDays = records.values.count { "✔️" in it.emojis }
-                        val totalXp = completedDays * 20
-                        StatisticCard(
-                            title = "Experiência acumulada",
-                            value = totalXp.toString(),
-                            emoji = "dm_star",
-                            description = "$completedDays dias concluídos · 20 XP por dia",
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )
-                    }
-                    item {
-                        Text(
-                            "Conquistas",
-                            color = textColor,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    item {
-                        AchievementCard(
-                            title = "Primeiro passo",
-                            description = "Conclua seu primeiro dia.",
-                            emoji = "🌱",
-                            current = records.values.count { "✔️" in it.emojis },
-                            target = 1,
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )
-                    }
-                    item {
-                        AchievementCard(
-                            title = "Uma semana de foco",
-                            description = "Complete 7 dias.",
-                            emoji = "🔥",
-                            current = records.values.count { "✔️" in it.emojis },
-                            target = 7,
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )
-                    }
-                    item {
-                        AchievementCard(
-                            title = "Em ritmo constante",
-                            description = "Complete 30 dias.",
-                            emoji = "⚔️",
-                            current = records.values.count { "✔️" in it.emojis },
-                            target = 30,
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )
-                    }
-                    item {
-                        AchievementCard(
-                            title = "Lenda da jornada",
-                            description = "Complete 100 dias.",
-                            emoji = "👑",
-                            current = records.values.count { "✔️" in it.emojis },
-                            target = 100,
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )
-                    }
-                    item {
-                        StatisticCard(
-                            title = "Atividades físicas",
-                            value = workoutDays.toString(),
-                            emoji = "dm_dumbbell",
-                            description = "Dias com emojis de exercícios",
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )
-                    }
-                    item {
-                        StatisticCard(
-                            title = "Marcações positivas",
-                            value = positiveMarks.toString(),
-                            emoji = "dm_check",
-                            description = "Total de marcações positivas",
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )
-                    }
-                    item {
-                        StatisticCard(
-                            title = "Marcações negativas",
-                            value = negativeMarks.toString(),
-                            emoji = "dm_cross",
-                            description = "Total de marcações negativas",
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )                    }
-                    item {
-                        StatisticCard(
-                            title = "Dias com anotações",
-                            value = noteDays.toString(),
-                            emoji = "dm_scroll",
-                            description = "Dias com notas salvas",
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )
-                    }
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(22.dp),
-                            colors = CardDefaults.cardColors(containerColor = cardColor)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(18.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    "Resumo do mês",
-                                    color = textColor,
-                                    fontWeight = FontWeight.Bold,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Text(
-                                    displayedMonth.format(
-                                        DateTimeFormatter.ofPattern("MMMM yyyy", Locale("pt", "BR"))
-                                    ).replaceFirstChar { it.uppercase() },
-                                    color = Purple,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    "Dias registrados: ${monthRecords.values.count { !it.isEmpty() }}",
-                                    color = textColor
-                                )
-                                Text(
-                                    "Notas escritas: ${monthRecords.values.count { it.note.isNotBlank() }}",
-                                    color = textColor
-                                )
-                                Text(
-                                    "Continue registrando seus dias. Cada passo conta! 🌱",
-                                    color = textColor.copy(alpha = 0.7f)
+                        Text("Estatísticas · $selectedCalendar", color = textColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("Acompanhe sua evolução nesta categoria.", color = textColor.copy(alpha = 0.72f))
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            calendarCategories.forEach { category ->
+                                FilterChip(
+                                    selected = selectedCalendar == category,
+                                    onClick = {
+                                        selectedCalendar = category
+                                        records = loadRecords(prefs.getString("day_records_v3_$category", null) ?: if (category == "Geral") prefs.getString("day_records_v3", null) else null)
+                                    },
+                                    label = { Text(category) }
                                 )
                             }
                         }
                     }
+                    item {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            StatisticCard("Dias registrados", totalDays.toString(), "dm_calendar", "Com marcações", cardColor, textColor, Modifier.weight(1f))
+                            StatisticCard("Experiência", totalXp.toString(), "dm_star", "XP acumulado", cardColor, textColor, Modifier.weight(1f))
+                        }
+                    }
+                    item {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            StatisticCard("Sequência atual", currentStreak.toString(), "dm_fire", "Dias seguidos", cardColor, textColor, Modifier.weight(1f))
+                            StatisticCard("Melhor sequência", bestStreak.toString(), "dm_trophy", "Recorde pessoal", cardColor, textColor, Modifier.weight(1f))
+                        }
+                    }
+                    item {
+                        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = cardColor)) {
+                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("Resumo do mês", color = textColor, fontWeight = FontWeight.Bold)
+                                Text(displayedMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale("pt", "BR"))).replaceFirstChar { it.uppercase() }, color = accent, fontWeight = FontWeight.SemiBold)
+                                Text("Dias registrados: ${monthRecords.values.count { !it.isEmpty() }}", color = textColor)
+                                Text("Notas escritas: ${monthRecords.values.count { it.note.isNotBlank() }}", color = textColor)
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    TextButton(onClick = { displayedMonth = displayedMonth.minusMonths(1) }) { Text("‹ Anterior") }
+                                    TextButton(onClick = { displayedMonth = displayedMonth.plusMonths(1) }) { Text("Próximo ›") }
+                                }
+                            }
+                        }
+                    }
+                    item {
+                        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = cardColor)) {
+                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("Atividade no mês", color = textColor, fontWeight = FontWeight.Bold)
+                                val days = displayedMonth.lengthOfMonth()
+                                val offset = displayedMonth.atDay(1).dayOfWeek.value - 1
+                                val cells = ((offset + days + 6) / 7) * 7
+                                for (week in 0 until cells / 7) {
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                        for (col in 0..6) {
+                                            val day = week * 7 + col - offset + 1
+                                            val rec = if (day in 1..days) records[displayedMonth.atDay(day).toString()] else null
+                                            Box(Modifier.weight(1f).aspectRatio(1f).clip(RoundedCornerShape(5.dp))
+                                                .background(if (rec == null || rec.isEmpty()) textColor.copy(alpha = 0.06f) else accent.copy(alpha = if ("✔️" in rec.emojis) 0.9f else 0.35f)),
+                                                contentAlignment = Alignment.Center) {
+                                                if (day in 1..days) Text(day.toString(), color = if (rec != null && !rec.isEmpty()) Color(0xFF17121D) else textColor.copy(alpha = 0.72f), style = MaterialTheme.typography.labelSmall)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    item {
+                        val year = displayedMonth.year
+                        val startOfYear = LocalDate.of(year, 1, 1)
+                        val daysInYear = if (startOfYear.isLeapYear) 366 else 365
+                        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = cardColor)) {
+                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                                Text("Visão anual · $year", color = textColor, fontWeight = FontWeight.Bold)
+                                Text("Cada quadrado representa um dia registrado.", color = textColor.copy(alpha = 0.68f), style = MaterialTheme.typography.bodySmall)
+                                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    val firstOffset = startOfYear.dayOfWeek.value - 1
+                                    val totalCells = ((firstOffset + daysInYear + 6) / 7) * 7
+                                    for (week in 0 until totalCells / 7) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                            for (weekday in 0..6) {
+                                                val dayIndex = week * 7 + weekday - firstOffset
+                                                val date = if (dayIndex in 0 until daysInYear) startOfYear.plusDays(dayIndex.toLong()) else null
+                                                val rec = date?.let { records[it.toString()] }
+                                                Box(
+                                                    Modifier.size(9.dp).clip(RoundedCornerShape(2.dp))
+                                                        .background(
+                                                            when {
+                                                                rec == null || rec.isEmpty() -> textColor.copy(alpha = 0.07f)
+                                                                "✔️" in rec.emojis -> accent
+                                                                else -> accent.copy(alpha = 0.38f)
+                                                            }
+                                                        )
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    item {
+                        Text("Conquistas", color = textColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("Marcos desbloqueados na sua jornada", color = textColor.copy(alpha = 0.68f), style = MaterialTheme.typography.bodySmall)
+                    }
+                    item {
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            AchievementCard("Primeiro passo", "Conclua seu primeiro dia.", "🌱", completedDays, 1, cardColor, textColor, accent)
+                            AchievementCard("Uma semana", "Complete 7 dias.", "🔥", completedDays, 7, cardColor, textColor, accent)
+                            AchievementCard("Ritmo constante", "Complete 30 dias.", "⚔️", completedDays, 30, cardColor, textColor, accent)
+                            AchievementCard("Lenda", "Complete 100 dias.", "👑", completedDays, 100, cardColor, textColor, accent)
+                        }
+                    }
+                    if (selectedCalendar == "Treino") {
+                        item {
+                            StatisticCard("Atividades físicas", workoutDays.toString(), "dm_dumbbell", "Dias com emojis de exercícios", cardColor, textColor)
+                        }
+                    }
+                    item {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            StatisticCard("Marcações positivas", positiveMarks.toString(), "dm_check", "Total positivo", cardColor, textColor, Modifier.weight(1f))
+                            StatisticCard("Marcações negativas", negativeMarks.toString(), "dm_cross", "Total negativo", cardColor, textColor, Modifier.weight(1f))
+                        }
+                    }
+                    item {
+                        StatisticCard("Dias com anotações", noteDays.toString(), "dm_scroll", "Notas salvas", cardColor, textColor)
+                    }
                 }
             }
+        }
+
+
+        if (showSettings) {
+            AlertDialog(
+                onDismissRequest = { showSettings = false },
+                containerColor = cardColor,
+                title = { Text("Personalizar aparência", color = textColor) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Text("Escolha a atmosfera da sua jornada", color = textColor.copy(alpha = 0.75f))
+                        listOf("Arcano", "Floresta", "Aurora").forEach { theme ->
+                            val swatch = when (theme) {
+                                "Floresta" -> Color(0xFF61D69B)
+                                "Aurora" -> Color(0xFFFF83C8)
+                                else -> Color(0xFFC16BFF)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                                    .background(swatch.copy(alpha = if (rpgTheme == theme) 0.20f else 0.08f))
+                                    .clickable {
+                                        rpgTheme = theme
+                                        prefs.edit().putString("rpg_theme", theme).apply()
+                                    }.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Box(Modifier.size(22.dp).clip(CircleShape).background(swatch))
+                                Column(Modifier.weight(1f)) {
+                                    Text(theme, color = textColor, fontWeight = FontWeight.SemiBold)
+                                    Text(when (theme) { "Floresta" -> "Verde natural"; "Aurora" -> "Rosa suave"; else -> "Roxo místico" }, color = textColor.copy(alpha = 0.65f), style = MaterialTheme.typography.bodySmall)
+                                }
+                                if (rpgTheme == theme) Text("✓", color = swatch, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                },
+                confirmButton = { TextButton(onClick = { showSettings = false }) { Text("Concluir") } }
+            )
         }
 
         // =================================================
@@ -941,7 +1017,7 @@ fun HabitosApp() {
                                         .background(colorValue?.let { Color(it) } ?: Color.Transparent)
                                         .then(
                                             if (selected) {
-                                                Modifier.border(3.dp, Purple, CircleShape)
+                                                Modifier.border(3.dp, accent, CircleShape)
                                             } else {
                                                 Modifier.border(1.dp, textColor.copy(alpha = 0.25f), CircleShape)
                                             }
@@ -966,7 +1042,7 @@ fun HabitosApp() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Como foi seu dia?", color = textColor, fontWeight = FontWeight.SemiBold)
-                        Text("${selectedEmojis.size} selecionados", color = Purple, style = MaterialTheme.typography.labelMedium)
+                        Text("${selectedEmojis.size} selecionados", color = accent, style = MaterialTheme.typography.labelMedium)
                     }
                     Text(
                         "Toque em vários emojis para marcar tudo o que aconteceu.",
@@ -989,12 +1065,12 @@ fun HabitosApp() {
                                     .aspectRatio(1f)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(
-                                        if (isSelected) Purple.copy(alpha = 0.2f)
+                                        if (isSelected) accent.copy(alpha = 0.2f)
                                         else textColor.copy(alpha = 0.04f)
                                     )
                                     .then(
                                         if (isSelected) {
-                                            Modifier.border(1.dp, Purple, RoundedCornerShape(12.dp))
+                                            Modifier.border(1.dp, accent, RoundedCornerShape(12.dp))
                                         } else Modifier
                                     )
                                     .clickable {
@@ -1028,7 +1104,7 @@ fun HabitosApp() {
                             .fillMaxWidth()
                             .height(52.dp),
                         shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Purple)
+                        colors = ButtonDefaults.buttonColors(containerColor = accent)
                     ) {
                         Icon(Icons.Default.Save, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
@@ -1083,127 +1159,31 @@ private fun XpProgressCard(
     accent: Color
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, accent.copy(alpha = 0.42f), RoundedCornerShape(22.dp)),
-        shape = RoundedCornerShape(22.dp),
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = cardColor)
     ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(
-                        "SUA JORNADA",
-                        color = accent,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        "Nível $level",
-                        color = textColor,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
+        Column(Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                    Text("🏆", style = MaterialTheme.typography.titleLarge)
+                    Text("Nível $level", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                 }
-                Text("🏆", style = MaterialTheme.typography.headlineLarge)
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
                 Text("$totalXp XP", color = accent, fontWeight = FontWeight.Bold)
-                Text("$xpInLevel / 100 XP", color = textColor.copy(alpha = 0.7f))
             }
             LinearProgressIndicator(
                 progress = { xpInLevel / 100f },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(10.dp)
-                    .clip(CircleShape),
+                modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
                 color = accent,
                 trackColor = textColor.copy(alpha = 0.12f)
             )
-            Text(
-                "$completedDays dias concluídos • 20 XP por dia",
-                color = textColor.copy(alpha = 0.7f),
-                style = MaterialTheme.typography.bodySmall
-            )
-            Text(
-                "Conclua mais dias para evoluir de nível!",
-                color = textColor.copy(alpha = 0.85f),
-                style = MaterialTheme.typography.bodySmall
-            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("$completedDays dias concluídos", color = textColor.copy(alpha = 0.68f), style = MaterialTheme.typography.labelSmall)
+                Text("$xpInLevel/100 XP", color = textColor.copy(alpha = 0.72f), style = MaterialTheme.typography.labelSmall)
+            }
         }
     }
 }
-
-// =====================================================
-// MODO AVENTURA: MAPA DE PROGRESSÃO
-// =====================================================
-
-@Composable
-private fun AdventureMapCard(
-    totalXp: Int,
-    cardColor: Color,
-    textColor: Color,
-    accent: Color
-) {
-    val destinations = listOf(
-        Triple(0, "Acampamento", "🏕️"),
-        Triple(100, "Bosque", "🌲"),
-        Triple(300, "Caverna", "💎"),
-        Triple(600, "Castelo", "🏰"),
-        Triple(1000, "Cume", "🏔️")
-    )
-    val nextDestination = destinations.firstOrNull { totalXp < it.first }
-    val progressText = nextDestination?.let { "Próximo destino: ${it.second} • ${it.first - totalXp} XP restantes" }
-        ?: "Você alcançou o topo da jornada! 👑"
-
-    Card(
-        modifier = Modifier.fillMaxWidth().border(1.dp, accent.copy(alpha = 0.32f), RoundedCornerShape(22.dp)),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = cardColor)
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(13.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("MAPA DA AVENTURA", color = accent, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
-                Text("Cada conquista abre um novo caminho.", color = textColor, fontWeight = FontWeight.SemiBold)
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                destinations.forEach { destination ->
-                    val unlocked = totalXp >= destination.first
-                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Box(
-                            modifier = Modifier.size(42.dp)
-                                .background(if (unlocked) accent.copy(alpha = 0.20f) else textColor.copy(alpha = 0.05f), CircleShape)
-                                .border(if (unlocked) 2.dp else 1.dp, if (unlocked) accent else textColor.copy(alpha = 0.18f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(if (unlocked) destination.third else "🔒", style = MaterialTheme.typography.titleMedium)
-                        }
-                        Text(destination.second, color = if (unlocked) accent else textColor.copy(alpha = 0.48f), style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 1)
-                        Text("${destination.first} XP", color = textColor.copy(alpha = 0.48f), style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-            }
-            HorizontalDivider(color = textColor.copy(alpha = 0.10f))
-            Text(progressText, color = accent, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
-            Text(
-                "Conclua dias no calendário para ganhar XP e explorar novos lugares. Seu progresso é calculado pelos registros com ✔️.",
-                color = textColor.copy(alpha = 0.68f),
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
-    }
-}
-
 // =====================================================
 // CONQUISTAS RPG
 // =====================================================
@@ -1216,36 +1196,31 @@ private fun AchievementCard(
     current: Int,
     target: Int,
     cardColor: Color,
-    textColor: Color
+    textColor: Color,
+    accent: Color
 ) {
     val unlocked = current >= target
     val progress = (current.toFloat() / target).coerceIn(0f, 1f)
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(
-                1.dp,
-                (if (unlocked) NeonCyan else textColor.copy(alpha = 0.12f)),
-                RoundedCornerShape(18.dp)
-            ),
-        shape = RoundedCornerShape(18.dp),
+        modifier = Modifier.width(214.dp),
+        shape = RoundedCornerShape(15.dp),
         colors = CardDefaults.cardColors(containerColor = cardColor)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(15.dp),
+                .padding(horizontal = 11.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(13.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = if (unlocked) emoji else "🔒",
-                style = MaterialTheme.typography.headlineMedium
+                style = MaterialTheme.typography.titleLarge
             )
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(5.dp)
+                verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
                 Text(
                     title,
@@ -1255,15 +1230,15 @@ private fun AchievementCard(
                 Text(
                     if (unlocked) "Conquista desbloqueada!" else description,
                     color = textColor.copy(alpha = 0.65f),
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.labelSmall
                 )
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(6.dp)
+                        .height(4.dp)
                         .clip(CircleShape),
-                    color = if (unlocked) NeonCyan else Purple,
+                    color = if (unlocked) accent else accent.copy(alpha = 0.72f),
                     trackColor = textColor.copy(alpha = 0.12f)
                 )
                 Text(
@@ -1273,7 +1248,7 @@ private fun AchievementCard(
                 )
             }
             if (unlocked) {
-                Text("✓", color = NeonCyan, fontWeight = FontWeight.Bold)
+                Text("✓", color = accent, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -1316,12 +1291,12 @@ private fun StatisticCard(
     emoji: String,
     description: String,
     cardColor: Color,
-    textColor: Color
+    textColor: Color,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, Purple.copy(alpha = 0.20f), RoundedCornerShape(20.dp)),
+        modifier = modifier
+            .fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = cardColor)
     ) {
@@ -1334,7 +1309,7 @@ private fun StatisticCard(
             Box(
                 modifier = Modifier
                     .size(54.dp)
-                    .background(Purple.copy(alpha = 0.18f), RoundedCornerShape(16.dp)),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f), RoundedCornerShape(16.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 DarkMoodEmoji(emoji = emoji, modifier = Modifier.size(34.dp))
@@ -1356,7 +1331,7 @@ private fun StatisticCard(
 
             Text(
                 value,
-                color = Purple,
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.headlineMedium
             )
