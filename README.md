@@ -74,7 +74,7 @@ Confira algumas telas reais do **Hábitos para Todos 2.0.0**:
 </table>
 
 </div>
-##  Tecnologias
+## Tecnologias
 
 - **Kotlin**
 - **Android**
