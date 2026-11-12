@@ -16,6 +16,21 @@ Um aplicativo Android de acompanhamento de hábitos que combina calendário, org
 
 ---
 
+## 📦 Versão oficial — 2.0.0
+
+A versão **2.0.0** está disponível! Esta versão reúne o calendário aprimorado, gamificação com XP e níveis, conquistas, temas visuais RPG e ícone personalizado.
+
+<div align="center">
+
+[![Baixar APK](https://img.shields.io/badge/⬇%20Baixar%20APK-v2.0.0-7667F8?style=for-the-badge)](https://github.com/NoNamekat/Habitos-para-Todos/releases/download/v2.0.0/app-debug.apk)
+[![Ver Release](https://img.shields.io/badge/GitHub-Notas%20da%20versão-24292e?style=for-the-badge&logo=github)](https://github.com/NoNamekat/Habitos-para-Todos/releases/tag/v2.0.0)
+
+**[Acessar a página da Release 2.0.0](https://github.com/NoNamekat/Habitos-para-Todos/releases/tag/v2.0.0)**
+
+</div>
+
+---
+
 ## ✨ Sobre o projeto
 
 O **Hábitos para Todos** nasceu com uma proposta simples: tornar o acompanhamento de hábitos mais visual, agradável e motivador. Em vez de apenas marcar tarefas como concluídas, o aplicativo transforma a consistência diária em uma experiência de evolução, com pontos de experiência, níveis e conquistas.
@@ -86,7 +101,7 @@ Habitos-para-Todos/
 
 ## 🧭 Estado do desenvolvimento
 
-O aplicativo está em evolução. Novas funcionalidades, ajustes de interface e melhorias são implementados e validados gradualmente. A branch `main` é mantida separada das implementações em desenvolvimento.
+A versão **2.0.0** está publicada na página de Releases. O aplicativo continua em evolução, com novas funcionalidades, ajustes de interface e melhorias implementados e validados gradualmente.
 
 ## 👨‍💻 Autor
 
