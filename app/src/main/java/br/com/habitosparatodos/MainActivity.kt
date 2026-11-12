@@ -883,6 +883,45 @@ fun HabitosApp() {
             }
         }
 
+
+        if (showSettings) {
+            AlertDialog(
+                onDismissRequest = { showSettings = false },
+                containerColor = cardColor,
+                title = { Text("Personalizar aparência", color = textColor) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Text("Escolha a atmosfera da sua jornada", color = textColor.copy(alpha = 0.75f))
+                        listOf("Arcano", "Floresta", "Aurora").forEach { theme ->
+                            val swatch = when (theme) {
+                                "Floresta" -> Color(0xFF61D69B)
+                                "Aurora" -> Color(0xFFFF83C8)
+                                else -> Color(0xFFC16BFF)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                                    .background(swatch.copy(alpha = if (rpgTheme == theme) 0.20f else 0.08f))
+                                    .clickable {
+                                        rpgTheme = theme
+                                        prefs.edit().putString("rpg_theme", theme).apply()
+                                    }.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Box(Modifier.size(22.dp).clip(CircleShape).background(swatch))
+                                Column(Modifier.weight(1f)) {
+                                    Text(theme, color = textColor, fontWeight = FontWeight.SemiBold)
+                                    Text(when (theme) { "Floresta" -> "Verde natural"; "Aurora" -> "Rosa suave"; else -> "Roxo místico" }, color = textColor.copy(alpha = 0.65f), style = MaterialTheme.typography.bodySmall)
+                                }
+                                if (rpgTheme == theme) Text("✓", color = swatch, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                },
+                confirmButton = { TextButton(onClick = { showSettings = false }) { Text("Concluir") } }
+            )
+        }
+
         // =================================================
         // PAINEL INFERIOR PARA EDITAR UM DIA
         // =================================================
@@ -1078,67 +1117,31 @@ private fun XpProgressCard(
     accent: Color
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, accent.copy(alpha = 0.42f), RoundedCornerShape(22.dp)),
-        shape = RoundedCornerShape(22.dp),
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = cardColor)
     ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(
-                        "SUA JORNADA",
-                        color = accent,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        "Nível $level",
-                        color = textColor,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
+        Column(Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                    Text("🏆", style = MaterialTheme.typography.titleLarge)
+                    Text("Nível $level", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                 }
-                Text("🏆", style = MaterialTheme.typography.headlineLarge)
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
                 Text("$totalXp XP", color = accent, fontWeight = FontWeight.Bold)
-                Text("$xpInLevel / 100 XP", color = textColor.copy(alpha = 0.7f))
             }
             LinearProgressIndicator(
                 progress = { xpInLevel / 100f },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(10.dp)
-                    .clip(CircleShape),
+                modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
                 color = accent,
                 trackColor = textColor.copy(alpha = 0.12f)
             )
-            Text(
-                "$completedDays dias concluídos • 20 XP por dia",
-                color = textColor.copy(alpha = 0.7f),
-                style = MaterialTheme.typography.bodySmall
-            )
-            Text(
-                "Conclua mais dias para evoluir de nível!",
-                color = textColor.copy(alpha = 0.85f),
-                style = MaterialTheme.typography.bodySmall
-            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("$completedDays dias concluídos", color = textColor.copy(alpha = 0.68f), style = MaterialTheme.typography.labelSmall)
+                Text("$xpInLevel/100 XP", color = textColor.copy(alpha = 0.72f), style = MaterialTheme.typography.labelSmall)
+            }
         }
     }
 }
-
 // =====================================================
 // CONQUISTAS RPG
 // =====================================================
