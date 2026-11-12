@@ -837,6 +837,40 @@ fun HabitosApp() {
                         }
                     }
                     item {
+                        val year = displayedMonth.year
+                        val startOfYear = LocalDate.of(year, 1, 1)
+                        val daysInYear = if (startOfYear.isLeapYear) 366 else 365
+                        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = cardColor)) {
+                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                                Text("Visão anual · $year", color = textColor, fontWeight = FontWeight.Bold)
+                                Text("Cada quadrado representa um dia registrado.", color = textColor.copy(alpha = 0.68f), style = MaterialTheme.typography.bodySmall)
+                                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    val firstOffset = startOfYear.dayOfWeek.value - 1
+                                    val totalCells = ((firstOffset + daysInYear + 6) / 7) * 7
+                                    for (week in 0 until totalCells / 7) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                            for (weekday in 0..6) {
+                                                val dayIndex = week * 7 + weekday - firstOffset
+                                                val date = if (dayIndex in 0 until daysInYear) startOfYear.plusDays(dayIndex.toLong()) else null
+                                                val rec = date?.let { records[it.toString()] }
+                                                Box(
+                                                    Modifier.size(9.dp).clip(RoundedCornerShape(2.dp))
+                                                        .background(
+                                                            when {
+                                                                rec == null || rec.isEmpty() -> textColor.copy(alpha = 0.07f)
+                                                                "✔️" in rec.emojis -> accent
+                                                                else -> accent.copy(alpha = 0.38f)
+                                                            }
+                                                        )
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    item {
                         Text("Conquistas", color = textColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Text("Marcos desbloqueados na sua jornada", color = textColor.copy(alpha = 0.68f), style = MaterialTheme.typography.bodySmall)
                     }
