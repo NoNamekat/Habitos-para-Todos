@@ -681,185 +681,118 @@ fun HabitosApp() {
                         }
                     }
                 } else {
+                    val completedDates = records.filterValues { "✔️" in it.emojis }.keys.mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }.sorted()
+                    val completedDays = completedDates.size
+                    val totalXp = completedDays * 20
                     val totalDays = records.values.count { !it.isEmpty() }
-                    val positiveMarks = records.values.sumOf { record ->
-                        record.emojis.count { it == "dm_check" || it == "dm_success" || it == "✔️" || it == "✅" || it == "☑️" }
-                    }
-                    val negativeMarks = records.values.sumOf { record ->
-                        record.emojis.count { it == "dm_cross" || it == "dm_cancel" || it == "❌" || it == "❎" || it == "🚫" }
-                    }
-                    val darkMoodWorkoutEmojis = setOf(
-                        "dm_dumbbell", "dm_kettlebell", "dm_ghost_run", "dm_skull_lift",
-                        "dm_sneaker", "dm_ghost_yoga", "dm_skeleton", "dm_bike"
-                    )
-                    val workoutDays = records.values.count { record ->
-                        record.emojis.any { it in workoutEmojis || it in darkMoodWorkoutEmojis }
-                    }
                     val noteDays = records.values.count { it.note.isNotBlank() }
-                    val monthRecords = records.filterKeys {
-                        runCatching { YearMonth.from(LocalDate.parse(it)) == displayedMonth }.getOrDefault(false)
+                    val positiveMarks = records.values.sumOf { record -> record.emojis.count { it in setOf("dm_check", "dm_success", "✔️", "✅", "☑️") } }
+                    val negativeMarks = records.values.sumOf { record -> record.emojis.count { it in setOf("dm_cross", "dm_cancel", "❌", "❎", "🚫") } }
+                    val darkMoodWorkoutEmojis = setOf("dm_dumbbell", "dm_kettlebell", "dm_ghost_run", "dm_skull_lift", "dm_sneaker", "dm_ghost_yoga", "dm_skeleton", "dm_bike")
+                    val workoutDays = records.values.count { record -> record.emojis.any { it in workoutEmojis || it in darkMoodWorkoutEmojis } }
+                    val monthRecords = records.filterKeys { runCatching { YearMonth.from(LocalDate.parse(it)) == displayedMonth }.getOrDefault(false) }
+                    var currentStreak = 0
+                    var cursor = LocalDate.now()
+                    while (completedDates.contains(cursor)) { currentStreak++; cursor = cursor.minusDays(1) }
+                    var bestStreak = 0
+                    var runningStreak = 0
+                    var previous: LocalDate? = null
+                    completedDates.forEach { date ->
+                        runningStreak = if (previous?.plusDays(1) == date) runningStreak + 1 else 1
+                        bestStreak = maxOf(bestStreak, runningStreak)
+                        previous = date
                     }
 
                     item {
-                        Text(
-                            "Suas estatísticas",
-                            color = textColor,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(Modifier.height(5.dp))
-                        Text("Um resumo das suas marcações no calendário.", color = textColor.copy(alpha = 0.65f))
-                    }
-                    item {
-                        StatisticCard(
-                            title = "Dias registrados",
-                            value = totalDays.toString(),
-                            emoji = "dm_calendar",
-                            description = "Dias com alguma marcação",
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )
-                    }
-                    item {
-                        val completedDays = records.values.count { "✔️" in it.emojis }
-                        val totalXp = completedDays * 20
-                        StatisticCard(
-                            title = "Experiência acumulada",
-                            value = totalXp.toString(),
-                            emoji = "dm_star",
-                            description = "$completedDays dias concluídos · 20 XP por dia",
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )
-                    }
-                    item {
-                        Text(
-                            "Conquistas",
-                            color = textColor,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    item {
-                        AchievementCard(
-                            title = "Primeiro passo",
-                            description = "Conclua seu primeiro dia.",
-                            emoji = "🌱",
-                            current = records.values.count { "✔️" in it.emojis },
-                            target = 1,
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )
-                    }
-                    item {
-                        AchievementCard(
-                            title = "Uma semana de foco",
-                            description = "Complete 7 dias.",
-                            emoji = "🔥",
-                            current = records.values.count { "✔️" in it.emojis },
-                            target = 7,
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )
-                    }
-                    item {
-                        AchievementCard(
-                            title = "Em ritmo constante",
-                            description = "Complete 30 dias.",
-                            emoji = "⚔️",
-                            current = records.values.count { "✔️" in it.emojis },
-                            target = 30,
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )
-                    }
-                    item {
-                        AchievementCard(
-                            title = "Lenda da jornada",
-                            description = "Complete 100 dias.",
-                            emoji = "👑",
-                            current = records.values.count { "✔️" in it.emojis },
-                            target = 100,
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )
-                    }
-                    item {
-                        StatisticCard(
-                            title = "Atividades físicas",
-                            value = workoutDays.toString(),
-                            emoji = "dm_dumbbell",
-                            description = "Dias com emojis de exercícios",
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )
-                    }
-                    item {
-                        StatisticCard(
-                            title = "Marcações positivas",
-                            value = positiveMarks.toString(),
-                            emoji = "dm_check",
-                            description = "Total de marcações positivas",
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )
-                    }
-                    item {
-                        StatisticCard(
-                            title = "Marcações negativas",
-                            value = negativeMarks.toString(),
-                            emoji = "dm_cross",
-                            description = "Total de marcações negativas",
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )                    }
-                    item {
-                        StatisticCard(
-                            title = "Dias com anotações",
-                            value = noteDays.toString(),
-                            emoji = "dm_scroll",
-                            description = "Dias com notas salvas",
-                            cardColor = cardColor,
-                            textColor = textColor
-                        )
-                    }
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(22.dp),
-                            colors = CardDefaults.cardColors(containerColor = cardColor)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(18.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    "Resumo do mês",
-                                    color = textColor,
-                                    fontWeight = FontWeight.Bold,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Text(
-                                    displayedMonth.format(
-                                        DateTimeFormatter.ofPattern("MMMM yyyy", Locale("pt", "BR"))
-                                    ).replaceFirstChar { it.uppercase() },
-                                    color = Purple,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    "Dias registrados: ${monthRecords.values.count { !it.isEmpty() }}",
-                                    color = textColor
-                                )
-                                Text(
-                                    "Notas escritas: ${monthRecords.values.count { it.note.isNotBlank() }}",
-                                    color = textColor
-                                )
-                                Text(
-                                    "Continue registrando seus dias. Cada passo conta! 🌱",
-                                    color = textColor.copy(alpha = 0.7f)
+                        Text("Estatísticas · $selectedCalendar", color = textColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("Acompanhe sua evolução nesta categoria.", color = textColor.copy(alpha = 0.72f))
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            calendarCategories.forEach { category ->
+                                FilterChip(
+                                    selected = selectedCalendar == category,
+                                    onClick = {
+                                        selectedCalendar = category
+                                        records = loadRecords(prefs.getString("day_records_v3_$category", null) ?: if (category == "Geral") prefs.getString("day_records_v3", null) else null)
+                                    },
+                                    label = { Text(category) }
                                 )
                             }
                         }
+                    }
+                    item {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            StatisticCard("Dias registrados", totalDays.toString(), "dm_calendar", "Com marcações", cardColor, textColor, Modifier.weight(1f))
+                            StatisticCard("Experiência", totalXp.toString(), "dm_star", "XP acumulado", cardColor, textColor, Modifier.weight(1f))
+                        }
+                    }
+                    item {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            StatisticCard("Sequência atual", currentStreak.toString(), "dm_fire", "Dias seguidos", cardColor, textColor, Modifier.weight(1f))
+                            StatisticCard("Melhor sequência", bestStreak.toString(), "dm_trophy", "Recorde pessoal", cardColor, textColor, Modifier.weight(1f))
+                        }
+                    }
+                    item {
+                        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = cardColor)) {
+                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("Resumo do mês", color = textColor, fontWeight = FontWeight.Bold)
+                                Text(displayedMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale("pt", "BR"))).replaceFirstChar { it.uppercase() }, color = accent, fontWeight = FontWeight.SemiBold)
+                                Text("Dias registrados: ${monthRecords.values.count { !it.isEmpty() }}", color = textColor)
+                                Text("Notas escritas: ${monthRecords.values.count { it.note.isNotBlank() }}", color = textColor)
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    TextButton(onClick = { displayedMonth = displayedMonth.minusMonths(1) }) { Text("‹ Anterior") }
+                                    TextButton(onClick = { displayedMonth = displayedMonth.plusMonths(1) }) { Text("Próximo ›") }
+                                }
+                            }
+                        }
+                    }
+                    item {
+                        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = cardColor)) {
+                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("Atividade no mês", color = textColor, fontWeight = FontWeight.Bold)
+                                val days = displayedMonth.lengthOfMonth()
+                                val offset = displayedMonth.atDay(1).dayOfWeek.value - 1
+                                val cells = ((offset + days + 6) / 7) * 7
+                                for (week in 0 until cells / 7) {
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                        for (col in 0..6) {
+                                            val day = week * 7 + col - offset + 1
+                                            val rec = if (day in 1..days) records[displayedMonth.atDay(day).toString()] else null
+                                            Box(Modifier.weight(1f).aspectRatio(1f).clip(RoundedCornerShape(5.dp))
+                                                .background(if (rec == null || rec.isEmpty()) textColor.copy(alpha = 0.06f) else accent.copy(alpha = if ("✔️" in rec.emojis) 0.9f else 0.35f)),
+                                                contentAlignment = Alignment.Center) {
+                                                if (day in 1..days) Text(day.toString(), color = if (rec != null && !rec.isEmpty()) Color(0xFF17121D) else textColor.copy(alpha = 0.72f), style = MaterialTheme.typography.labelSmall)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    item {
+                        Text("Conquistas", color = textColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("Marcos desbloqueados na sua jornada", color = textColor.copy(alpha = 0.68f), style = MaterialTheme.typography.bodySmall)
+                    }
+                    item {
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            AchievementCard("Primeiro passo", "Conclua seu primeiro dia.", "🌱", completedDays, 1, cardColor, textColor)
+                            AchievementCard("Uma semana de foco", "Complete 7 dias.", "🔥", completedDays, 7, cardColor, textColor)
+                            AchievementCard("Em ritmo constante", "Complete 30 dias.", "⚔️", completedDays, 30, cardColor, textColor)
+                            AchievementCard("Lenda da jornada", "Complete 100 dias.", "👑", completedDays, 100, cardColor, textColor)
+                        }
+                    }
+                    if (selectedCalendar == "Treino") {
+                        item {
+                            StatisticCard("Atividades físicas", workoutDays.toString(), "dm_dumbbell", "Dias com emojis de exercícios", cardColor, textColor)
+                        }
+                    }
+                    item {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            StatisticCard("Marcações positivas", positiveMarks.toString(), "dm_check", "Total positivo", cardColor, textColor, Modifier.weight(1f))
+                            StatisticCard("Marcações negativas", negativeMarks.toString(), "dm_cross", "Total negativo", cardColor, textColor, Modifier.weight(1f))
+                        }
+                    }
+                    item {
+                        StatisticCard("Dias com anotações", noteDays.toString(), "dm_scroll", "Notas salvas", cardColor, textColor)
                     }
                 }
             }
@@ -1236,12 +1169,12 @@ private fun StatisticCard(
     emoji: String,
     description: String,
     cardColor: Color,
-    textColor: Color
+    textColor: Color,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, Purple.copy(alpha = 0.20f), RoundedCornerShape(20.dp)),
+        modifier = modifier
+            .fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = cardColor)
     ) {
