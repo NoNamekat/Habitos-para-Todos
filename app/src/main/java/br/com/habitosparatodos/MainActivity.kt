@@ -204,9 +204,9 @@ fun HabitosApp() {
     var dark by remember { mutableStateOf(prefs.getBoolean("dark", true)) }
     var rpgTheme by remember { mutableStateOf(prefs.getString("rpg_theme", "Arcano") ?: "Arcano") }
     val accent = when (rpgTheme) {
-        "Floresta" -> Color(0xFF61D69B)
-        "Aurora" -> Color(0xFFFF83C8)
-        else -> Color(0xFFC16BFF)
+        "Floresta" -> Color(0xFF55B982)
+        "Aurora" -> Color(0xFFFF79B8)
+        else -> Color(0xFF9B6DFF)
     }
     var currentTab by remember { mutableIntStateOf(0) }
     var selectedCalendar by remember { mutableStateOf("Geral") }
@@ -227,9 +227,17 @@ fun HabitosApp() {
         )
     }
 
-    val background = if (dark) DarkBackground else LightBackground
-    val cardColor = if (dark) DarkSurface else LightSurface
-    val textColor = if (dark) Color(0xFFFFF5FF) else Ink
+    val background = when (rpgTheme) {
+        "Floresta" -> if (dark) Color(0xFF081810) else Color(0xFFEAF6ED)
+        "Aurora" -> if (dark) Color(0xFF1B0D1A) else Color(0xFFFFF0F7)
+        else -> if (dark) Color(0xFF100B18) else Color(0xFFF3EDFF)
+    }
+    val cardColor = when (rpgTheme) {
+        "Floresta" -> if (dark) Color(0xFF14291D) else Color(0xFFF8FFF9)
+        "Aurora" -> if (dark) Color(0xFF2B1728) else Color(0xFFFFFAFC)
+        else -> if (dark) Color(0xFF21172F) else Color(0xFFFFFBFF)
+    }
+    val textColor = if (dark) Color(0xFFFFF5FF) else Color(0xFF30243A)
 
     fun persistRecords(updated: Map<String, DayRecord>) {
         records = updated
@@ -339,9 +347,9 @@ fun HabitosApp() {
                         icon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Calendário") },
                         label = { Text("Calendário") },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Purple,
-                            selectedTextColor = Purple,
-                            indicatorColor = Purple.copy(alpha = 0.18f),
+                            selectedIconColor = accent,
+                            selectedTextColor = accent,
+                            indicatorColor = accent.copy(alpha = 0.18f),
                             unselectedIconColor = textColor.copy(alpha = 0.58f),
                             unselectedTextColor = textColor.copy(alpha = 0.58f)
                         )
@@ -352,9 +360,9 @@ fun HabitosApp() {
                         icon = { Icon(Icons.Default.Insights, contentDescription = "Estatísticas") },
                         label = { Text("Estatísticas") },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Purple,
-                            selectedTextColor = Purple,
-                            indicatorColor = Purple.copy(alpha = 0.18f),
+                            selectedIconColor = accent,
+                            selectedTextColor = accent,
+                            indicatorColor = accent.copy(alpha = 0.18f),
                             unselectedIconColor = textColor.copy(alpha = 0.58f),
                             unselectedTextColor = textColor.copy(alpha = 0.58f)
                         )
@@ -414,7 +422,7 @@ fun HabitosApp() {
                                 .fillMaxWidth()
                                 .border(
                                     1.dp,
-                                    Purple.copy(alpha = if (dark) 0.24f else 0.16f),
+                                    accent.copy(alpha = if (dark) 0.24f else 0.16f),
                                     RoundedCornerShape(24.dp)
                                 )
                                 .pointerInput(displayedMonth) {
@@ -499,7 +507,7 @@ fun HabitosApp() {
                                                     val dayBackground = when {
                                                         record?.color != null -> Color(record.color)
                                                         isCompleted -> Color(CompletedDayGreen)
-                                                        isSelected -> Purple.copy(alpha = if (dark) 0.20f else 0.12f)
+                                                        isSelected -> accent.copy(alpha = if (dark) 0.20f else 0.12f)
                                                         else -> Color.Transparent
                                                     }
 
@@ -509,15 +517,17 @@ fun HabitosApp() {
                                                             .clip(CircleShape)
                                                             .background(dayBackground)
                                                             .then(
-                                                                if (isSelected) {
-                                                                    Modifier.border(
-                                                                        2.dp,
-                                                                        if (isCompleted) Mint else Purple,
-                                                                        CircleShape
-                                                                    )
-                                                                } else Modifier
+                                                                when {
+                                                                    date == today && isSelected -> Modifier.border(2.dp, accent, CircleShape)
+                                                                    date == today -> Modifier.border(2.dp, accent.copy(alpha = 0.9f), CircleShape)
+                                                                    isSelected -> Modifier.border(2.dp, accent, CircleShape)
+                                                                    else -> Modifier
+                                                                }
                                                             )
-                                                            .clickable { selectedDate = date }
+                                                            .combinedClickable(
+                                                                onClick = { markDayCompleted(date) },
+                                                                onLongClick = { openDay(date) }
+                                                            )
                                                             .padding(2.dp),
                                                         horizontalAlignment = Alignment.CenterHorizontally,
                                                         verticalArrangement = Arrangement.Center
@@ -559,7 +569,7 @@ fun HabitosApp() {
                                 HorizontalDivider(color = textColor.copy(alpha = 0.1f))
                                 Spacer(Modifier.height(12.dp))
                                 Text(
-                                    "Selecione uma data e use o painel abaixo para concluir ou editar seu registro.",
+                                    "Toque em um dia para concluir ou retirar a conclusão. Pressione e segure para adicionar anotações e editar o registro.",
                                     color = textColor.copy(alpha = 0.65f),
                                     style = MaterialTheme.typography.bodySmall
                                 )
@@ -598,10 +608,10 @@ fun HabitosApp() {
                                         },
                                         label = { Text(category) },
                                         leadingIcon = if (selected) {
-                                            { Text("✦", color = Purple) }
+                                            { Text("✦", color = accent) }
                                         } else null,
                                         colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = Purple.copy(alpha = if (dark) 0.22f else 0.13f),
+                                            selectedContainerColor = accent.copy(alpha = if (dark) 0.22f else 0.13f),
                                             selectedLabelColor = textColor
                                         )
                                     )
@@ -638,7 +648,7 @@ fun HabitosApp() {
                                 .fillMaxWidth()
                                 .border(
                                     1.dp,
-                                    Purple.copy(alpha = if (dark) 0.22f else 0.14f),
+                                    accent.copy(alpha = if (dark) 0.22f else 0.14f),
                                     RoundedCornerShape(22.dp)
                                 )
                                 .clickable { openDay(selectedDate) },
@@ -890,11 +900,11 @@ fun HabitosApp() {
                         Text("Marcos desbloqueados na sua jornada", color = textColor.copy(alpha = 0.68f), style = MaterialTheme.typography.bodySmall)
                     }
                     item {
-                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            AchievementCard("Primeiro passo", "Conclua seu primeiro dia.", "🌱", completedDays, 1, cardColor, textColor)
-                            AchievementCard("Uma semana de foco", "Complete 7 dias.", "🔥", completedDays, 7, cardColor, textColor)
-                            AchievementCard("Em ritmo constante", "Complete 30 dias.", "⚔️", completedDays, 30, cardColor, textColor)
-                            AchievementCard("Lenda da jornada", "Complete 100 dias.", "👑", completedDays, 100, cardColor, textColor)
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            AchievementCard("Primeiro passo", "Conclua seu primeiro dia.", "🌱", completedDays, 1, cardColor, textColor, accent)
+                            AchievementCard("Uma semana", "Complete 7 dias.", "🔥", completedDays, 7, cardColor, textColor, accent)
+                            AchievementCard("Ritmo constante", "Complete 30 dias.", "⚔️", completedDays, 30, cardColor, textColor, accent)
+                            AchievementCard("Lenda", "Complete 100 dias.", "👑", completedDays, 100, cardColor, textColor, accent)
                         }
                     }
                     if (selectedCalendar == "Treino") {
@@ -1007,7 +1017,7 @@ fun HabitosApp() {
                                         .background(colorValue?.let { Color(it) } ?: Color.Transparent)
                                         .then(
                                             if (selected) {
-                                                Modifier.border(3.dp, Purple, CircleShape)
+                                                Modifier.border(3.dp, accent, CircleShape)
                                             } else {
                                                 Modifier.border(1.dp, textColor.copy(alpha = 0.25f), CircleShape)
                                             }
@@ -1032,7 +1042,7 @@ fun HabitosApp() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Como foi seu dia?", color = textColor, fontWeight = FontWeight.SemiBold)
-                        Text("${selectedEmojis.size} selecionados", color = Purple, style = MaterialTheme.typography.labelMedium)
+                        Text("${selectedEmojis.size} selecionados", color = accent, style = MaterialTheme.typography.labelMedium)
                     }
                     Text(
                         "Toque em vários emojis para marcar tudo o que aconteceu.",
@@ -1055,12 +1065,12 @@ fun HabitosApp() {
                                     .aspectRatio(1f)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(
-                                        if (isSelected) Purple.copy(alpha = 0.2f)
+                                        if (isSelected) accent.copy(alpha = 0.2f)
                                         else textColor.copy(alpha = 0.04f)
                                     )
                                     .then(
                                         if (isSelected) {
-                                            Modifier.border(1.dp, Purple, RoundedCornerShape(12.dp))
+                                            Modifier.border(1.dp, accent, RoundedCornerShape(12.dp))
                                         } else Modifier
                                     )
                                     .clickable {
@@ -1094,7 +1104,7 @@ fun HabitosApp() {
                             .fillMaxWidth()
                             .height(52.dp),
                         shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Purple)
+                        colors = ButtonDefaults.buttonColors(containerColor = accent)
                     ) {
                         Icon(Icons.Default.Save, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
@@ -1186,36 +1196,31 @@ private fun AchievementCard(
     current: Int,
     target: Int,
     cardColor: Color,
-    textColor: Color
+    textColor: Color,
+    accent: Color
 ) {
     val unlocked = current >= target
     val progress = (current.toFloat() / target).coerceIn(0f, 1f)
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(
-                1.dp,
-                (if (unlocked) NeonCyan else textColor.copy(alpha = 0.12f)),
-                RoundedCornerShape(18.dp)
-            ),
-        shape = RoundedCornerShape(18.dp),
+        modifier = Modifier.width(214.dp),
+        shape = RoundedCornerShape(15.dp),
         colors = CardDefaults.cardColors(containerColor = cardColor)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(15.dp),
+                .padding(horizontal = 11.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(13.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = if (unlocked) emoji else "🔒",
-                style = MaterialTheme.typography.headlineMedium
+                style = MaterialTheme.typography.titleLarge
             )
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(5.dp)
+                verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
                 Text(
                     title,
@@ -1225,15 +1230,15 @@ private fun AchievementCard(
                 Text(
                     if (unlocked) "Conquista desbloqueada!" else description,
                     color = textColor.copy(alpha = 0.65f),
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.labelSmall
                 )
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(6.dp)
+                        .height(4.dp)
                         .clip(CircleShape),
-                    color = if (unlocked) NeonCyan else Purple,
+                    color = if (unlocked) accent else accent.copy(alpha = 0.72f),
                     trackColor = textColor.copy(alpha = 0.12f)
                 )
                 Text(
@@ -1243,7 +1248,7 @@ private fun AchievementCard(
                 )
             }
             if (unlocked) {
-                Text("✓", color = NeonCyan, fontWeight = FontWeight.Bold)
+                Text("✓", color = accent, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -1304,7 +1309,7 @@ private fun StatisticCard(
             Box(
                 modifier = Modifier
                     .size(54.dp)
-                    .background(Purple.copy(alpha = 0.18f), RoundedCornerShape(16.dp)),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f), RoundedCornerShape(16.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 DarkMoodEmoji(emoji = emoji, modifier = Modifier.size(34.dp))
@@ -1326,7 +1331,7 @@ private fun StatisticCard(
 
             Text(
                 value,
-                color = Purple,
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.headlineMedium
             )
