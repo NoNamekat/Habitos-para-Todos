@@ -424,6 +424,21 @@ fun HabitosApp() {
                     }
 
                     item {
+                        val completedDays = records.values.count { "✔️" in it.emojis }
+                        val totalXp = completedDays * 20
+                        val currentLevel = totalXp / 100 + 1
+                        val xpInLevel = totalXp % 100
+                        XpProgressCard(
+                            level = currentLevel,
+                            totalXp = totalXp,
+                            xpInLevel = xpInLevel,
+                            completedDays = completedDays,
+                            cardColor = cardColor,
+                            textColor = textColor
+                        )
+                    }
+
+                    item {
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -691,6 +706,18 @@ fun HabitosApp() {
                         )
                     }
                     item {
+                        val completedDays = records.values.count { "✔️" in it.emojis }
+                        val totalXp = completedDays * 20
+                        StatisticCard(
+                            title = "Experiência acumulada",
+                            value = totalXp.toString(),
+                            emoji = "dm_star",
+                            description = "$completedDays dias concluídos · 20 XP por dia",
+                            cardColor = cardColor,
+                            textColor = textColor
+                        )
+                    }
+                    item {
                         StatisticCard(
                             title = "Atividades físicas",
                             value = workoutDays.toString(),
@@ -948,6 +975,81 @@ fun HabitosApp() {
                     )
                 }
             }
+        }
+    }
+}
+
+// =====================================================
+// PROGRESSÃO RPG: XP E NÍVEIS
+// =====================================================
+
+@Composable
+private fun XpProgressCard(
+    level: Int,
+    totalXp: Int,
+    xpInLevel: Int,
+    completedDays: Int,
+    cardColor: Color,
+    textColor: Color
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, NeonCyan.copy(alpha = 0.35f), RoundedCornerShape(22.dp)),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = cardColor)
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(
+                        "SUA JORNADA",
+                        color = NeonCyan,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "Nível $level",
+                        color = textColor,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Text("🏆", style = MaterialTheme.typography.headlineLarge)
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("$totalXp XP", color = NeonCyan, fontWeight = FontWeight.Bold)
+                Text("$xpInLevel / 100 XP", color = textColor.copy(alpha = 0.7f))
+            }
+            LinearProgressIndicator(
+                progress = { xpInLevel / 100f },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+                    .clip(CircleShape),
+                color = NeonCyan,
+                trackColor = textColor.copy(alpha = 0.12f)
+            )
+            Text(
+                "$completedDays dias concluídos • 20 XP por dia",
+                color = textColor.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text(
+                "Conclua mais dias para evoluir de nível!",
+                color = textColor.copy(alpha = 0.85f),
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }
