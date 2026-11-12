@@ -31,23 +31,13 @@ A versão **2.0.0** está disponível! Esta versão reúne o calendário aprimor
 
 ---
 
-## ✨ Sobre o projeto
+##  Sobre o projeto
 
 O **Hábitos para Todos** nasceu com uma proposta simples: tornar o acompanhamento de hábitos mais visual, agradável e motivador. Em vez de apenas marcar tarefas como concluídas, o aplicativo transforma a consistência diária em uma experiência de evolução, com pontos de experiência, níveis e conquistas.
 
 O projeto está em desenvolvimento e é construído de forma incremental, com testes em dispositivos Android.
 
-## 🎮 Funcionalidades
 
-- **Calendário interativo:** visualize os dias e acompanhe seus registros.
-- **Categorias:** organize os registros em Geral, Treino, Estudos, Leitura e Saúde.
-- **Registro diário:** marque um dia com um toque ou mantenha pressionado para adicionar anotações, cores e símbolos.
-- **Gamificação:** ganhe XP ao concluir dias e avance de nível.
-- **Conquistas:** acompanhe marcos e objetivos alcançados.
-- **Temas visuais RPG:** escolha entre identidades visuais como Arcano, Floresta e Aurora.
-- **Modo claro e escuro:** alterne a aparência do aplicativo.
-- **Estatísticas:** acompanhe sua evolução a partir dos registros.
-- **Armazenamento local:** os registros são mantidos no próprio dispositivo.
 
 ## 🖼️ Prévia do aplicativo
 
@@ -84,7 +74,7 @@ Confira algumas telas reais do **Hábitos para Todos 2.0.0**:
 </table>
 
 </div>
-## 🛠️ Tecnologias
+##  Tecnologias
 
 - **Kotlin**
 - **Android**
@@ -94,20 +84,8 @@ Confira algumas telas reais do **Hábitos para Todos 2.0.0**:
 - **Gradle**
 - **GitHub Actions** para compilação automatizada do APK
 
-## 🧱 Estrutura do projeto
 
-```
-Habitos-para-Todos/
-├── .github/workflows/       # Automação de compilação
-├── app/
-│   └── src/main/
-│       ├── java/            # Código Kotlin
-│       └── res/             # Recursos visuais e ícones
-├── build.gradle.kts
-└── README.md
-```
-
-## 🚀 Como compilar
+##  Como compilar
 
 ### Requisitos
 
@@ -122,16 +100,12 @@ Habitos-para-Todos/
 3. Aguarde a execução terminar com sucesso.
 4. Abra a execução concluída e baixe o artefato APK disponibilizado em **Artifacts**.
 
-## 🧭 Estado do desenvolvimento
+##  Estado do desenvolvimento
 
 A versão **2.0.0** está publicada na página de Releases. O aplicativo continua em evolução, com novas funcionalidades, ajustes de interface e melhorias implementados e validados gradualmente.
 
-## 👨‍💻 Autor
+##  Autor
 
-Desenvolvido por **NoNamekat**.
+Desenvolvido por **Abraão Jackson Aragão Rodrigues**.
 
 ---
-
-<div align="center">
-  Feito com 💜 e Kotlin.
-</div>
