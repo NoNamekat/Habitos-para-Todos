@@ -5,6 +5,7 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -33,6 +34,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -1163,8 +1168,9 @@ private fun AdventureMapCard(
         Triple(1000, "Cume", "🏔️")
     )
     val nextDestination = destinations.firstOrNull { totalXp < it.first }
-    val progressText = nextDestination?.let { "Próximo destino: ${it.second} • ${it.first - totalXp} XP restantes" }
-        ?: "Você alcançou o topo da jornada! 👑"
+    val progressText = nextDestination?.let {
+        "Próximo destino: ${it.second} • ${it.first - totalXp} XP restantes"
+    } ?: "Você alcançou o topo da jornada! 👑"
 
     Card(
         modifier = Modifier.fillMaxWidth().border(1.dp, accent.copy(alpha = 0.32f), RoundedCornerShape(22.dp)),
@@ -1174,8 +1180,11 @@ private fun AdventureMapCard(
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(13.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("MAPA DA AVENTURA", color = accent, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
-                Text("Cada conquista abre um novo caminho.", color = textColor, fontWeight = FontWeight.SemiBold)
+                Text("Explore um mundo que cresce com você.", color = textColor, fontWeight = FontWeight.SemiBold)
             }
+
+            IllustratedMapScene(totalXp = totalXp, accent = accent)
+
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 destinations.forEach { destination ->
                     val unlocked = totalXp >= destination.first
@@ -1196,11 +1205,122 @@ private fun AdventureMapCard(
             HorizontalDivider(color = textColor.copy(alpha = 0.10f))
             Text(progressText, color = accent, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
             Text(
-                "Conclua dias no calendário para ganhar XP e explorar novos lugares. Seu progresso é calculado pelos registros com ✔️.",
+                "Conclua dias no calendário para ganhar XP. Cada marco revela uma nova região do mapa.",
                 color = textColor.copy(alpha = 0.68f),
                 style = MaterialTheme.typography.bodySmall
             )
         }
+    }
+}
+
+@Composable
+private fun IllustratedMapScene(totalXp: Int, accent: Color) {
+    val unlockedBosque = totalXp >= 100
+    val unlockedCaverna = totalXp >= 300
+    val unlockedCastelo = totalXp >= 600
+    val unlockedCume = totalXp >= 1000
+
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(190.dp)
+            .clip(RoundedCornerShape(18.dp))
+    ) {
+        val w = size.width
+        val h = size.height
+        val sx = w / 360f
+        val sy = h / 190f
+        fun p(x: Float, y: Float) = Offset(x * sx, y * sy)
+
+        // Campo em pixel-art: clareiras, colinas e pequenos lagos.
+        drawRect(Color(0xFF244B3B))
+        drawCircle(Color(0xFF315F43), 72f * sx, p(55f, 30f))
+        drawCircle(Color(0xFF3B7048), 85f * sx, p(180f, 20f))
+        drawCircle(Color(0xFF315F43), 78f * sx, p(315f, 35f))
+        drawCircle(Color(0xFF47784B), 62f * sx, p(170f, 170f))
+
+        val river = Path().apply {
+            moveTo(300f * sx, -10f * sy)
+            cubicTo(250f * sx, 45f * sy, 330f * sx, 70f * sy, 260f * sx, 112f * sy)
+            cubicTo(220f * sx, 145f * sy, 270f * sx, 170f * sy, 230f * sx, 205f * sy)
+        }
+        drawPath(river, Color(0xFF397E9B), style = Stroke(width = 18f * sx))
+        drawPath(river, Color(0xFF70C4D0), style = Stroke(width = 3f * sx))
+
+        // Trilha pontilhada que conecta os cinco marcos.
+        val trail = Path().apply {
+            moveTo(28f * sx, 145f * sy)
+            cubicTo(70f * sx, 120f * sy, 75f * sx, 65f * sy, 125f * sx, 82f * sy)
+            cubicTo(175f * sx, 100f * sy, 185f * sx, 145f * sy, 220f * sx, 105f * sy)
+            cubicTo(260f * sx, 60f * sy, 285f * sx, 70f * sy, 330f * sx, 25f * sy)
+        }
+        drawPath(trail, Color(0xFFB99A63), style = Stroke(width = 12f * sx))
+        drawPath(trail, Color(0xFFE7D19A), style = Stroke(width = 2f * sx))
+
+        // Árvores estilizadas.
+        val treePositions = listOf(Offset(25f, 35f), Offset(75f, 25f), Offset(105f, 145f),
+            Offset(145f, 28f), Offset(195f, 35f), Offset(285f, 145f), Offset(335f, 115f))
+        treePositions.forEachIndexed { index, point ->
+            val x = point.x * sx
+            val y = point.y * sy
+            drawRect(Color(0xFF70472F), Offset(x - 3f * sx, y + 8f * sy), Size(6f * sx, 13f * sy))
+            drawCircle(if (index % 2 == 0) Color(0xFF1D573D) else Color(0xFF286B46), 13f * sx, Offset(x, y))
+            drawCircle(Color(0xFF4B9857), 5f * sx, Offset(x - 4f * sx, y - 5f * sy))
+        }
+
+        // Acampamento e barraca.
+        drawCircle(Color(0xFFFFD36A), 15f * sx, p(28f, 145f))
+        val tent = Path().apply {
+            moveTo(15f * sx, 146f * sy); lineTo(29f * sx, 126f * sy)
+            lineTo(43f * sx, 146f * sy); close()
+        }
+        drawPath(tent, Color(0xFFE7B85C))
+        drawLine(Color(0xFF70472F), p(29f, 127f), p(29f, 146f), 2f * sx)
+
+        // Bosque, caverna, castelo e pico: áreas ficam apagadas até serem liberadas.
+        val bosque = if (unlockedBosque) Color(0xFF8ED17C) else Color(0xFF52665A)
+        drawCircle(bosque, 17f * sx, p(125f, 82f))
+        drawCircle(if (unlockedBosque) Color(0xFFB4E58A) else Color(0xFF69756D), 8f * sx, p(125f, 75f))
+
+        drawRoundRect(
+            if (unlockedCaverna) Color(0xFF252B38) else Color(0xFF5A6267),
+            topLeft = p(205f, 91f), size = Size(28f * sx, 23f * sy),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(10f * sx, 10f * sy)
+        )
+        drawCircle(if (unlockedCaverna) Color(0xFF64D7E8) else Color(0xFF92999A), 4f * sx, p(219f, 102f))
+
+        val castleColor = if (unlockedCastelo) Color(0xFFD7C6A1) else Color(0xFF77736B)
+        drawRect(castleColor, p(270f, 48f), Size(30f * sx, 24f * sy))
+        drawRect(castleColor, p(266f, 40f), Size(9f * sx, 32f * sy))
+        drawRect(castleColor, p(295f, 40f), Size(9f * sx, 32f * sy))
+        drawRect(Color(0xFF9E554A), p(265f, 37f), Size(11f * sx, 5f * sy))
+        drawRect(Color(0xFF9E554A), p(294f, 37f), Size(11f * sx, 5f * sy))
+        drawRect(Color(0xFF654B3D), p(282f, 58f), Size(7f * sx, 14f * sy))
+
+        val mountain = Path().apply {
+            moveTo(315f * sx, 27f * sy); lineTo(334f * sx, -4f * sy)
+            lineTo(355f * sx, 27f * sy); close()
+        }
+        drawPath(if (unlockedCume) Color(0xFFB9D6DF) else Color(0xFF66757B), mountain)
+        val snow = Path().apply {
+            moveTo(329f * sx, 4f * sy); lineTo(334f * sx, -4f * sy)
+            lineTo(340f * sx, 5f * sy); lineTo(335f * sx, 3f * sy)
+            lineTo(332f * sx, 8f * sy); close()
+        }
+        drawPath(Color(0xFFF2F5F3), snow)
+
+        // Marcadores luminosos nos pontos da jornada.
+        listOf(p(28f, 145f), p(125f, 82f), p(219f, 102f), p(285f, 53f), p(334f, 20f))
+            .forEachIndexed { index, point ->
+                val active = when (index) {
+                    0 -> true
+                    1 -> unlockedBosque
+                    2 -> unlockedCaverna
+                    3 -> unlockedCastelo
+                    else -> unlockedCume
+                }
+                drawCircle(if (active) accent else Color(0xFF89918A), 4f * sx, point)
+            }
     }
 }
 
