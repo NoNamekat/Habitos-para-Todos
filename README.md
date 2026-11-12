@@ -51,16 +51,39 @@ O projeto está em desenvolvimento e é construído de forma incremental, com te
 
 ## 🖼️ Prévia do aplicativo
 
-O ícone oficial já faz parte da identidade visual do projeto. As capturas de tela das telas do aplicativo serão adicionadas aqui conforme a validação das próximas versões.
+Confira algumas telas reais do **Hábitos para Todos 2.0.0**:
 
 <div align="center">
-  <img src="app/src/main/res/drawable-nodpi/foreground.png" alt="Ícone oficial do aplicativo" width="120">
-  <br>
-  <sub>Ícone oficial — Hábitos para Todos</sub>
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="docs/screenshots/calendario.png" alt="Tela do calendário" width="220"><br>
+      <strong>📅 Calendário</strong>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/estatisticas1.png" alt="Tela de estatísticas" width="220"><br>
+      <strong>📊 Estatísticas</strong>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/estatisticas2.png" alt="Tela de conquistas e evolução" width="220"><br>
+      <strong>🏆 Evolução e conquistas</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="docs/screenshots/temas-rpg.png" alt="Personalização de tema RPG" width="220"><br>
+      <strong>🎨 Temas RPG</strong>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/temas-rpg2.png" alt="Outra visualização dos temas RPG" width="220"><br>
+      <strong>✨ Personalização visual</strong>
+    </td>
+    <td></td>
+  </tr>
+</table>
+
 </div>
-
-> Quer contribuir com a apresentação? Capturas reais do calendário, das estatísticas e das telas de personalização serão incluídas nesta seção nas próximas atualizações.
-
 ## 🛠️ Tecnologias
 
 - **Kotlin**
