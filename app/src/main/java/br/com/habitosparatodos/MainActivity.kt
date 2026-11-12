@@ -718,6 +718,58 @@ fun HabitosApp() {
                         )
                     }
                     item {
+                        Text(
+                            "Conquistas",
+                            color = textColor,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    item {
+                        AchievementCard(
+                            title = "Primeiro passo",
+                            description = "Conclua seu primeiro dia.",
+                            emoji = "🌱",
+                            current = records.values.count { "✔️" in it.emojis },
+                            target = 1,
+                            cardColor = cardColor,
+                            textColor = textColor
+                        )
+                    }
+                    item {
+                        AchievementCard(
+                            title = "Uma semana de foco",
+                            description = "Complete 7 dias.",
+                            emoji = "🔥",
+                            current = records.values.count { "✔️" in it.emojis },
+                            target = 7,
+                            cardColor = cardColor,
+                            textColor = textColor
+                        )
+                    }
+                    item {
+                        AchievementCard(
+                            title = "Em ritmo constante",
+                            description = "Complete 30 dias.",
+                            emoji = "⚔️",
+                            current = records.values.count { "✔️" in it.emojis },
+                            target = 30,
+                            cardColor = cardColor,
+                            textColor = textColor
+                        )
+                    }
+                    item {
+                        AchievementCard(
+                            title = "Lenda da jornada",
+                            description = "Complete 100 dias.",
+                            emoji = "👑",
+                            current = records.values.count { "✔️" in it.emojis },
+                            target = 100,
+                            cardColor = cardColor,
+                            textColor = textColor
+                        )
+                    }
+                    item {
                         StatisticCard(
                             title = "Atividades físicas",
                             value = workoutDays.toString(),
@@ -1050,6 +1102,81 @@ private fun XpProgressCard(
                 color = textColor.copy(alpha = 0.85f),
                 style = MaterialTheme.typography.bodySmall
             )
+        }
+    }
+}
+
+// =====================================================
+// CONQUISTAS RPG
+// =====================================================
+
+@Composable
+private fun AchievementCard(
+    title: String,
+    description: String,
+    emoji: String,
+    current: Int,
+    target: Int,
+    cardColor: Color,
+    textColor: Color
+) {
+    val unlocked = current >= target
+    val progress = (current.toFloat() / target).coerceIn(0f, 1f)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                1.dp,
+                (if (unlocked) NeonCyan else textColor.copy(alpha = 0.12f)),
+                RoundedCornerShape(18.dp)
+            ),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = cardColor)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(15.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(13.dp)
+        ) {
+            Text(
+                text = if (unlocked) emoji else "🔒",
+                style = MaterialTheme.typography.headlineMedium
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                Text(
+                    title,
+                    color = textColor,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    if (unlocked) "Conquista desbloqueada!" else description,
+                    color = textColor.copy(alpha = 0.65f),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(CircleShape),
+                    color = if (unlocked) NeonCyan else Purple,
+                    trackColor = textColor.copy(alpha = 0.12f)
+                )
+                Text(
+                    "$current / $target dias",
+                    color = textColor.copy(alpha = 0.55f),
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+            if (unlocked) {
+                Text("✓", color = NeonCyan, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
