@@ -9,6 +9,11 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -207,6 +212,8 @@ fun HabitosApp() {
     var selectedCalendar by remember { mutableStateOf("Geral") }
     var showDayDetails by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var xpGainVisible by remember { mutableStateOf(false) }
+    var levelUpVisible by remember { mutableStateOf(false) }
     var dayNote by remember { mutableStateOf("") }
     var selectedColor by remember { mutableStateOf<Long?>(null) }
     var selectedEmojis by remember { mutableStateOf(setOf<String>()) }
@@ -237,6 +244,7 @@ fun HabitosApp() {
         val key = date.toString()
         val currentRecord = records[key] ?: DayRecord()
         val isCompleted = "✔️" in currentRecord.emojis
+        val previousLevel = (records.values.count { "✔️" in it.emojis } * 20) / 100 + 1
 
         val updatedRecord = if (isCompleted) {
             currentRecord.copy(
@@ -258,6 +266,11 @@ fun HabitosApp() {
 
         persistRecords(updatedRecords)
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        if (!isCompleted) {
+            xpGainVisible = true
+            val newCompletedDays = updatedRecords.values.count { "✔️" in it.emojis }
+            levelUpVisible = (newCompletedDays * 20) / 100 + 1 > previousLevel
+        }
     }
 
     fun openDay(date: LocalDate) {
@@ -692,6 +705,44 @@ fun HabitosApp() {
                                                 style = MaterialTheme.typography.bodySmall
                                             )
                                         }
+                                    }
+                                }
+                                val isCompleted = record?.emojis?.contains("✔️") == true
+                                Button(
+                                    onClick = { markDayCompleted(selectedDate) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (isCompleted) textColor.copy(alpha = 0.12f) else accent
+                                    )
+                                ) {
+                                    Text(
+                                        if (isCompleted) "Dia concluído ✓" else "Concluir dia • +20 XP",
+                                        color = if (isCompleted) textColor else Color(0xFF1B1024)
+                                    )
+                                }
+                                AnimatedVisibility(
+                                    visible = xpGainVisible,
+                                    enter = fadeIn() + slideInVertically { -it / 2 },
+                                    exit = fadeOut() + slideOutVertically { -it / 2 }
+                                ) {
+                                    Text(
+                                        if (levelUpVisible) "🎉 NÍVEL AUMENTOU! +20 XP" else "+20 XP • Boa jornada!",
+                                        modifier = Modifier.fillMaxWidth(),
+                                        color = accent,
+                                        textAlign = TextAlign.Center,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                LaunchedEffect(xpGainVisible) {
+                                    if (xpGainVisible) {
+                                        kotlinx.coroutines.delay(1500)
+                                        xpGainVisible = false
+                                        levelUpVisible = false
+                                    }
+                                }
+                                if (record == null || record.isEmpty()) {
+                                    TextButton(onClick = { openDay(selectedDate) }, modifier = Modifier.fillMaxWidth()) {
+                                        Text("Criar registro", color = accent)
                                     }
                                 }
                             }
