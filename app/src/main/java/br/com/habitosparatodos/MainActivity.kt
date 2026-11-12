@@ -5,6 +5,10 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -186,6 +190,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun HabitosApp() {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val prefs = remember { context.getSharedPreferences("habitos_local", 0) }
     val today = remember { LocalDate.now() }
 
@@ -252,6 +257,7 @@ fun HabitosApp() {
         }
 
         persistRecords(updatedRecords)
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
     }
 
     fun openDay(date: LocalDate) {
@@ -390,70 +396,6 @@ fun HabitosApp() {
 
                 if (currentTab == 0) {
                     item {
-                        Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                            Text(
-                                "Meus calendários",
-                                color = textColor,
-                                fontWeight = FontWeight.SemiBold,
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                calendarCategories.forEach { category ->
-                                    val selected = selectedCalendar == category
-                                    FilterChip(
-                                        selected = selected,
-                                        onClick = {
-                                            if (selectedCalendar != category) {
-                                                selectedCalendar = category
-                                                records = loadRecords(
-                                                    prefs.getString("day_records_v3_${category}", null)
-                                                        ?: if (category == "Geral") {                                                            prefs.getString("day_records_v3", null)
-                                                        } else null
-                                                )
-                                                selectedDate = today
-                                            }
-                                        },
-                                        label = { Text(category) },
-                                        leadingIcon = if (selected) {
-                                            { Text("✦", color = Purple) }
-                                        } else null,
-                                        colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = Purple.copy(alpha = if (dark) 0.22f else 0.13f),
-                                            selectedLabelColor = textColor
-                                        )
-                                    )
-                                }
-                            }
-                            Text(
-                                "Cada categoria mantém seus registros separados.",
-                                color = textColor.copy(alpha = 0.58f),
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-
-                    item {
-                        val completedDays = records.values.count { "✔️" in it.emojis }
-                        val totalXp = completedDays * 20
-                        val currentLevel = totalXp / 100 + 1
-                        val xpInLevel = totalXp % 100
-                        XpProgressCard(
-                            level = currentLevel,
-                            totalXp = totalXp,
-                            xpInLevel = xpInLevel,
-                            completedDays = completedDays,
-                            cardColor = cardColor,
-                            textColor = textColor,
-                            accent = accent
-                        )
-                    }
-
-                    item {
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -463,7 +405,18 @@ fun HabitosApp() {
                                     RoundedCornerShape(24.dp)
                                 ),
                             shape = RoundedCornerShape(24.dp),
-                            colors = CardDefaults.cardColors(containerColor = cardColor)
+                            colors = CardDefaults.cardColors(containerColor = cardColor),
+                            modifier = Modifier.pointerInput(displayedMonth) {
+                                var dragDistance = 0f
+                                detectHorizontalDragGestures(
+                                    onHorizontalDrag = { _, amount -> dragDistance += amount },
+                                    onDragEnd = {
+                                        if (dragDistance > 70f) displayedMonth = displayedMonth.minusMonths(1)
+                                        else if (dragDistance < -70f) displayedMonth = displayedMonth.plusMonths(1)
+                                        dragDistance = 0f
+                                    }
+                                )
+                            }
                         ) {
                             Column(modifier = Modifier.padding(14.dp)) {
                                 Row(
@@ -599,6 +552,70 @@ fun HabitosApp() {
                                 )
                             }
                         }
+                    }
+
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                            Text(
+                                "Meus calendários",
+                                color = textColor,
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                calendarCategories.forEach { category ->
+                                    val selected = selectedCalendar == category
+                                    FilterChip(
+                                        selected = selected,
+                                        onClick = {
+                                            if (selectedCalendar != category) {
+                                                selectedCalendar = category
+                                                records = loadRecords(
+                                                    prefs.getString("day_records_v3_${category}", null)
+                                                        ?: if (category == "Geral") {                                                            prefs.getString("day_records_v3", null)
+                                                        } else null
+                                                )
+                                                selectedDate = today
+                                            }
+                                        },
+                                        label = { Text(category) },
+                                        leadingIcon = if (selected) {
+                                            { Text("✦", color = Purple) }
+                                        } else null,
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = Purple.copy(alpha = if (dark) 0.22f else 0.13f),
+                                            selectedLabelColor = textColor
+                                        )
+                                    )
+                                }
+                            }
+                            Text(
+                                "Cada categoria mantém seus registros separados.",
+                                color = textColor.copy(alpha = 0.58f),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+
+                    item {
+                        val completedDays = records.values.count { "✔️" in it.emojis }
+                        val totalXp = completedDays * 20
+                        val currentLevel = totalXp / 100 + 1
+                        val xpInLevel = totalXp % 100
+                        XpProgressCard(
+                            level = currentLevel,
+                            totalXp = totalXp,
+                            xpInLevel = xpInLevel,
+                            completedDays = completedDays,
+                            cardColor = cardColor,
+                            textColor = textColor,
+                            accent = accent
+                        )
                     }
 
                     item {
