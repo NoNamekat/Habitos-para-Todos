@@ -1301,13 +1301,13 @@ private fun IllustratedMapScene(totalXp: Int, accent: Color) {
             moveTo(315f * sx, 27f * sy); lineTo(334f * sx, -4f * sy)
             lineTo(355f * sx, 27f * sy); close()
         }
-        drawPath(if (unlockedCume) Color(0xFFB9D6DF) else Color(0xFF66757B), mountain)
+        drawPath(mountain, if (unlockedCume) Color(0xFFB9D6DF) else Color(0xFF66757B))
         val snow = Path().apply {
             moveTo(329f * sx, 4f * sy); lineTo(334f * sx, -4f * sy)
             lineTo(340f * sx, 5f * sy); lineTo(335f * sx, 3f * sy)
             lineTo(332f * sx, 8f * sy); close()
         }
-        drawPath(Color(0xFFF2F5F3), snow)
+        drawPath(snow, Color(0xFFF2F5F3))
 
         // Marcadores luminosos nos pontos da jornada.
         listOf(p(28f, 145f), p(125f, 82f), p(219f, 102f), p(285f, 53f), p(334f, 20f))
