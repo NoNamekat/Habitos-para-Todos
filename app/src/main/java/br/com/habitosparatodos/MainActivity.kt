@@ -201,6 +201,7 @@ fun HabitosApp() {
     var currentTab by remember { mutableIntStateOf(0) }
     var selectedCalendar by remember { mutableStateOf("Geral") }
     var showDayDetails by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
     var dayNote by remember { mutableStateOf("") }
     var selectedColor by remember { mutableStateOf<Long?>(null) }
     var selectedEmojis by remember { mutableStateOf(setOf<String>()) }
@@ -369,44 +370,25 @@ fun HabitosApp() {
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
-                        IconButton(
-                            onClick = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = {
                                 dark = !dark
                                 prefs.edit().putBoolean("dark", dark).apply()
+                            }) {
+                                Icon(
+                                    imageVector = if (dark) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                    contentDescription = if (dark) "Ativar modo claro" else "Ativar modo escuro",
+                                    tint = textColor
+                                )
                             }
-                        ) {
-                            Icon(
-                                imageVector = if (dark) Icons.Default.LightMode else Icons.Default.DarkMode,
-                                contentDescription = "Alternar tema",
-                                tint = textColor
-                            )
+                            IconButton(onClick = { showSettings = true }) {
+                                Text("⚙️", style = MaterialTheme.typography.titleLarge)
+                            }
                         }
                     }
                 }
 
                 if (currentTab == 0) {
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth().border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(18.dp)),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(containerColor = cardColor)
-                        ) {
-                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                                Text("PERSONALIZE SUA JORNADA", color = accent, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
-                                Text("Escolha a atmosfera do seu RPG", color = textColor, style = MaterialTheme.typography.bodyMedium)
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                                    listOf("Arcano", "Floresta", "Aurora").forEach { theme ->
-                                        FilterChip(
-                                            selected = rpgTheme == theme,
-                                            onClick = { rpgTheme = theme; prefs.edit().putString("rpg_theme", theme).apply() },
-                                            label = { Text(when (theme) { "Floresta" -> "🌿 Floresta"; "Aurora" -> "🌸 Aurora"; else -> "🔮 Arcano" }) },
-                                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = accent.copy(alpha = 0.22f), selectedLabelColor = textColor)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                             Text(
@@ -569,10 +551,7 @@ fun HabitosApp() {
                                                                     )
                                                                 } else Modifier
                                                             )
-                                                            .combinedClickable(
-                                                                onClick = { markDayCompleted(date) },
-                                                                onLongClick = { openDay(date) }
-                                                            )
+                                                            .clickable { selectedDate = date }
                                                             .padding(2.dp),
                                                         horizontalAlignment = Alignment.CenterHorizontally,
                                                         verticalArrangement = Arrangement.Center
@@ -614,7 +593,7 @@ fun HabitosApp() {
                                 HorizontalDivider(color = textColor.copy(alpha = 0.1f))
                                 Spacer(Modifier.height(12.dp))
                                 Text(
-                                    "Toque em um dia para marcar ou desmarcar. Segure para editar cor, emojis e anotação.",
+                                    "Selecione uma data e use o painel abaixo para concluir ou editar seu registro.",
                                     color = textColor.copy(alpha = 0.65f),
                                     style = MaterialTheme.typography.bodySmall
                                 )
@@ -662,11 +641,14 @@ fun HabitosApp() {
                                             style = MaterialTheme.typography.bodySmall
                                         )
                                     }
-                                    Text("Editar ✏️", color = Purple, fontWeight = FontWeight.SemiBold)
+                                    TextButton(onClick = { openDay(selectedDate) }) {
+                                        Text("Editar ✏️", color = accent, fontWeight = FontWeight.SemiBold)
+                                    }
                                 }
 
                                 if (record == null || record.isEmpty()) {
-                                    Text("Nenhum registro neste dia.", color = textColor.copy(alpha = 0.65f))
+                                    Text("Nenhum registro neste dia.", color = textColor.copy(alpha = 0.72f))
+                                    Text("Adicione emojis, uma cor ou uma anotação para guardar esse momento.", color = textColor.copy(alpha = 0.62f), style = MaterialTheme.typography.bodySmall)
                                 } else {
                                     if (record.emojis.isNotEmpty()) {
                                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
