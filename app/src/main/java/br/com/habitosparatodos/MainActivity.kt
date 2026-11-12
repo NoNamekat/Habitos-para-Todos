@@ -679,6 +679,21 @@ fun HabitosApp() {
                                 if (record == null || record.isEmpty()) {
                                     Text("Nenhum registro neste dia.", color = textColor.copy(alpha = 0.72f))
                                     Text("Adicione emojis, uma cor ou uma anotação para guardar esse momento.", color = textColor.copy(alpha = 0.62f), style = MaterialTheme.typography.bodySmall)
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        listOf("dm_check", "dm_star", "dm_heart", "dm_books", "dm_dumbbell").forEach { shortcut ->
+                                            Box(
+                                                Modifier.size(42.dp).clip(RoundedCornerShape(12.dp))
+                                                    .background(textColor.copy(alpha = 0.06f))
+                                                    .clickable {
+                                                        openDay(selectedDate)
+                                                        selectedEmojis = selectedEmojis + shortcut
+                                                    },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                DarkMoodEmoji(shortcut, Modifier.size(28.dp))
+                                            }
+                                        }
+                                    }
                                 } else {
                                     if (record.emojis.isNotEmpty()) {
                                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
