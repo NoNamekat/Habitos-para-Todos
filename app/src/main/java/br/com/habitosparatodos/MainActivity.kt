@@ -212,6 +212,7 @@ fun HabitosApp() {
     val background = if (dark) DarkBackground else LightBackground
     val cardColor = if (dark) DarkSurface else LightSurface
     val textColor = if (dark) Color(0xFFFFF5FF) else Ink
+    val adventureXp = records.values.count { "✔️" in it.emojis } * 20
 
     fun persistRecords(updated: Map<String, DayRecord>) {
         records = updated
@@ -468,7 +469,7 @@ fun HabitosApp() {
 
                     item {
                         AdventureMapCard(
-                            totalXp = totalXp,
+                            totalXp = adventureXp,
                             cardColor = cardColor,
                             textColor = textColor,
                             accent = accent
