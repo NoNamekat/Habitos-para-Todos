@@ -403,20 +403,20 @@ fun HabitosApp() {
                                     1.dp,
                                     Purple.copy(alpha = if (dark) 0.24f else 0.16f),
                                     RoundedCornerShape(24.dp)
-                                ),
-                            shape = RoundedCornerShape(24.dp),
-                            colors = CardDefaults.cardColors(containerColor = cardColor),
-                            modifier = Modifier.pointerInput(displayedMonth) {
-                                var dragDistance = 0f
-                                detectHorizontalDragGestures(
-                                    onHorizontalDrag = { _, amount -> dragDistance += amount },
-                                    onDragEnd = {
-                                        if (dragDistance > 70f) displayedMonth = displayedMonth.minusMonths(1)
-                                        else if (dragDistance < -70f) displayedMonth = displayedMonth.plusMonths(1)
-                                        dragDistance = 0f
-                                    }
                                 )
-                            }
+                                .pointerInput(displayedMonth) {
+                                    var dragDistance = 0f
+                                    detectHorizontalDragGestures(
+                                        onHorizontalDrag = { _, amount -> dragDistance += amount },
+                                        onDragEnd = {
+                                            if (dragDistance > 70f) displayedMonth = displayedMonth.minusMonths(1)
+                                            else if (dragDistance < -70f) displayedMonth = displayedMonth.plusMonths(1)
+                                            dragDistance = 0f
+                                        }
+                                    )
+                                },
+                            shape = RoundedCornerShape(24.dp),
+                            colors = CardDefaults.cardColors(containerColor = cardColor)
                         ) {
                             Column(modifier = Modifier.padding(14.dp)) {
                                 Row(
