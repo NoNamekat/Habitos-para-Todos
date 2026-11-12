@@ -187,6 +187,12 @@ fun HabitosApp() {
     var selectedDate by remember { mutableStateOf(today) }
     var displayedMonth by remember { mutableStateOf(YearMonth.from(today)) }
     var dark by remember { mutableStateOf(prefs.getBoolean("dark", true)) }
+    var rpgTheme by remember { mutableStateOf(prefs.getString("rpg_theme", "Arcano") ?: "Arcano") }
+    val accent = when (rpgTheme) {
+        "Floresta" -> Color(0xFF61D69B)
+        "Aurora" -> Color(0xFFFF83C8)
+        else -> Color(0xFFC16BFF)
+    }
     var currentTab by remember { mutableIntStateOf(0) }
     var selectedCalendar by remember { mutableStateOf("Geral") }
     var showDayDetails by remember { mutableStateOf(false) }
@@ -278,7 +284,7 @@ fun HabitosApp() {
     MaterialTheme(
         colorScheme = if (dark) {
             darkColorScheme(
-                primary = Purple,
+                primary = accent,
                 secondary = Mint,
                 tertiary = NeonPink,
                 background = background,
@@ -288,7 +294,7 @@ fun HabitosApp() {
             )
         } else {
             lightColorScheme(
-                primary = Purple,
+                primary = accent,
                 secondary = Mint,
                 tertiary = NeonPink,
                 background = background,
@@ -375,6 +381,28 @@ fun HabitosApp() {
 
                 if (currentTab == 0) {
                     item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(18.dp)),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = cardColor)
+                        ) {
+                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                                Text("PERSONALIZE SUA JORNADA", color = accent, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                                Text("Escolha a atmosfera do seu RPG", color = textColor, style = MaterialTheme.typography.bodyMedium)
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                                    listOf("Arcano", "Floresta", "Aurora").forEach { theme ->
+                                        FilterChip(
+                                            selected = rpgTheme == theme,
+                                            onClick = { rpgTheme = theme; prefs.edit().putString("rpg_theme", theme).apply() },
+                                            label = { Text(when (theme) { "Floresta" -> "🌿 Floresta"; "Aurora" -> "🌸 Aurora"; else -> "🔮 Arcano" }) },
+                                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = accent.copy(alpha = 0.22f), selectedLabelColor = textColor)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    item {
                         Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                             Text(
                                 "Meus calendários",
@@ -397,8 +425,7 @@ fun HabitosApp() {
                                                 selectedCalendar = category
                                                 records = loadRecords(
                                                     prefs.getString("day_records_v3_${category}", null)
-                                                        ?: if (category == "Geral") {
-                                                            prefs.getString("day_records_v3", null)
+                                                        ?: if (category == "Geral") {                                                            prefs.getString("day_records_v3", null)
                                                         } else null
                                                 )
                                                 selectedDate = today
@@ -434,7 +461,17 @@ fun HabitosApp() {
                             xpInLevel = xpInLevel,
                             completedDays = completedDays,
                             cardColor = cardColor,
-                            textColor = textColor
+                            textColor = textColor,
+                            accent = accent
+                        )
+                    }
+
+                    item {
+                        AdventureMapCard(
+                            totalXp = totalXp,
+                            cardColor = cardColor,
+                            textColor = textColor,
+                            accent = accent
                         )
                     }
 
@@ -797,8 +834,7 @@ fun HabitosApp() {
                             description = "Total de marcações negativas",
                             cardColor = cardColor,
                             textColor = textColor
-                        )
-                    }
+                        )                    }
                     item {
                         StatisticCard(
                             title = "Dias com anotações",
@@ -1042,12 +1078,13 @@ private fun XpProgressCard(
     xpInLevel: Int,
     completedDays: Int,
     cardColor: Color,
-    textColor: Color
+    textColor: Color,
+    accent: Color
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, NeonCyan.copy(alpha = 0.35f), RoundedCornerShape(22.dp)),
+            .border(1.dp, accent.copy(alpha = 0.42f), RoundedCornerShape(22.dp)),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = cardColor)
     ) {
@@ -1063,7 +1100,7 @@ private fun XpProgressCard(
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(
                         "SUA JORNADA",
-                        color = NeonCyan,
+                        color = accent,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -1080,7 +1117,7 @@ private fun XpProgressCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("$totalXp XP", color = NeonCyan, fontWeight = FontWeight.Bold)
+                Text("$totalXp XP", color = accent, fontWeight = FontWeight.Bold)
                 Text("$xpInLevel / 100 XP", color = textColor.copy(alpha = 0.7f))
             }
             LinearProgressIndicator(
@@ -1089,7 +1126,7 @@ private fun XpProgressCard(
                     .fillMaxWidth()
                     .height(10.dp)
                     .clip(CircleShape),
-                color = NeonCyan,
+                color = accent,
                 trackColor = textColor.copy(alpha = 0.12f)
             )
             Text(
@@ -1100,6 +1137,66 @@ private fun XpProgressCard(
             Text(
                 "Conclua mais dias para evoluir de nível!",
                 color = textColor.copy(alpha = 0.85f),
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+// =====================================================
+// MODO AVENTURA: MAPA DE PROGRESSÃO
+// =====================================================
+
+@Composable
+private fun AdventureMapCard(
+    totalXp: Int,
+    cardColor: Color,
+    textColor: Color,
+    accent: Color
+) {
+    val destinations = listOf(
+        Triple(0, "Acampamento", "🏕️"),
+        Triple(100, "Bosque", "🌲"),
+        Triple(300, "Caverna", "💎"),
+        Triple(600, "Castelo", "🏰"),
+        Triple(1000, "Cume", "🏔️")
+    )
+    val nextDestination = destinations.firstOrNull { totalXp < it.first }
+    val progressText = nextDestination?.let { "Próximo destino: ${it.second} • ${it.first - totalXp} XP restantes" }
+        ?: "Você alcançou o topo da jornada! 👑"
+
+    Card(
+        modifier = Modifier.fillMaxWidth().border(1.dp, accent.copy(alpha = 0.32f), RoundedCornerShape(22.dp)),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = cardColor)
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(13.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("MAPA DA AVENTURA", color = accent, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                Text("Cada conquista abre um novo caminho.", color = textColor, fontWeight = FontWeight.SemiBold)
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+                destinations.forEach { destination ->
+                    val unlocked = totalXp >= destination.first
+                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Box(
+                            modifier = Modifier.size(42.dp)
+                                .background(if (unlocked) accent.copy(alpha = 0.20f) else textColor.copy(alpha = 0.05f), CircleShape)
+                                .border(if (unlocked) 2.dp else 1.dp, if (unlocked) accent else textColor.copy(alpha = 0.18f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(if (unlocked) destination.third else "🔒", style = MaterialTheme.typography.titleMedium)
+                        }
+                        Text(destination.second, color = if (unlocked) accent else textColor.copy(alpha = 0.48f), style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 1)
+                        Text("${destination.first} XP", color = textColor.copy(alpha = 0.48f), style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+            HorizontalDivider(color = textColor.copy(alpha = 0.10f))
+            Text(progressText, color = accent, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
+            Text(
+                "Conclua dias no calendário para ganhar XP e explorar novos lugares. Seu progresso é calculado pelos registros com ✔️.",
+                color = textColor.copy(alpha = 0.68f),
                 style = MaterialTheme.typography.bodySmall
             )
         }
@@ -1197,8 +1294,7 @@ private fun DarkMoodEmoji(emoji: String, modifier: Modifier = Modifier) {
             painter = painterResource(resourceId),
             contentDescription = emoji.removePrefix("dm_").replace('_', ' '),
             modifier = modifier,
-            contentScale = ContentScale.Fit
-        )
+            contentScale = ContentScale.Fit        )
     } else {
         Text(
             text = emojiFallbacks[emoji] ?: "✨",
